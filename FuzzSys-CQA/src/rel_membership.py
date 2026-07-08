@@ -127,6 +127,11 @@ class RelationMembership:
             rel_ids = rel_ids.expand(B_score)
 
         # For negation raw: apply per-relation score shift
+        # Direction: hard relations (low tau_s, model unreliable) need WEAKER
+        # negation to avoid accidentally removing correct answers.
+        #   shift_r > 0 → effective_score lower → membership lower → r_2 higher → weaker negation
+        # Easy relations (high tau_s, model reliable) can use STRONGER negation.
+        #   shift_r < 0 → effective_score higher → membership higher → r_2 lower → stronger negation
         if call_site_type == 'negation_raw':
             shift = self._get_shift_for_rel(rel_ids)  # [B]
             # Clamp shift to reasonable range
@@ -134,7 +139,7 @@ class RelationMembership:
             # Reshape for broadcasting
             if shift.dim() == 1:
                 shift = shift.unsqueeze(1)  # [B, 1]
-            shifted_scores = scores - shift  # hard rel (neg shift) → scores up → higher membership
+            shifted_scores = scores - shift  # hard rel (pos shift) → scores down → lower membership → weaker negation
         else:
             shifted_scores = scores  # no shift for combined/union
 
