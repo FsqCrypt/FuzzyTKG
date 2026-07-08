@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python3 -c ' *)",
       "Bash(python3 *)",
-      "Bash(conda env *)"
+      "Bash(conda env *)",
+      "Bash(git checkout *)"
     ]
   }
 }
