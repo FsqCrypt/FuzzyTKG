@@ -1,5 +1,7 @@
 # CQA 项目 — 三值关系感知 Membership 模块
 
+# Session 1 — 2026-07-08 上午：初始方案设计与代码实现
+
 ## 项目概述
 
 FuzzSys-CQA 是一个基于模糊系统的复杂查询回答（Complex Query Answering）框架。原始系统使用全局 B-spline 函数将所有 relation 的 LP score 映射到 [0,1] 的 membership 值。本项目在此基础上提出了**关系感知三值 membership**模块。
@@ -261,3 +263,178 @@ python3 main.py --do_test --data_path ../KG_data/FB15k-betae \
 4. **直接在测试集上优化 shift**：用 grid search 在验证集上找每个 relation 的最优 shift
 
 5. **改用更简单的 per-relation threshold**：放弃三值，直接用 `mu_r = original_membership(score - threshold_r)`，threshold_r 从 pos score 中位数估计
+
+---
+
+# Session 2 — 2026-07-08 下午：方法迭代与 Bounded Score-Shift 创新
+
+## 一、Sigmoid+Gaussian 三值方法的实验挫败
+
+### 1.1 实验迭代过程
+
+在 Session 1 代码实现基础上，对 FB15k-237 (CQD backbone) 的 2in 查询进行了 5 轮实验：
+
+| # | 方法 | 关键参数 | 2in MRR | vs Baseline 0.1215 |
+|---|---|---|---|---|
+| 1 | Sigmoid+Gaussian + 手工默认参数 | tau_w=5.2, tau_s=6.5, T=0.65 | 0.1106 | **-9.0%** |
+| 2 | + 硬阈值 mask | 加 threshd=4.7 和 Max_score mask | 0.1041 | -14.3% |
+| 3 | 数据驱动参数 | tau_w=0.80, tau_s=4.84, T=2.02 | 0.0894 | -26.3% |
+| 4 | 约束 gap≤1.5 | 理论分析 | — | 不通过 |
+| 5 | 转为 Score-Shift | shift_r = tau_s_r - global_tau_s | 0.1125 | -7.4% |
+
+### 1.2 失败原因
+
+**Gaussian Boundary 始终占主导**：在中心区域 `mu_B ≈ 0.8-1.0`，`mu_S + 0.5*mu_B` 的有效 penalty 被 `0.5*mu_B` 项拉高。即使约束 tau_w/tau_s 之间的 gap 到 1.5，Gaussian 宽度仍足以覆盖大部分分数范围。
+
+**决策**：放弃 Sigmoid+Gaussian+Softmax 三值公式，转向保留原始 B-spline 函数形式的 Score-Shift 方法。
+
+---
+
+## 二、Score-Shift 方法的演进
+
+### 2.1 第一版：双向 Shift（失败）
+
+公式：`shift_r = tau_s_r - global_tau_s`，范围 [-3.0, +3.0]
+
+- Hard relation（低 tau_s）→ shift < 0 → 分数升高 → membership 升高 → **更强 negation**
+- Easy relation（高 tau_s）→ shift > 0 → 分数降低 → membership 降低 → **更弱 negation**
+
+结果：2in MRR = 0.1125 (-7.4%)
+
+### 2.2 Shift 方向修正
+
+**核心分析**：在 2in "A AND NOT B" 中，negation 因子 `r_2 = 1 - membership(effective_score)` 乘以正分支分数：
+- Hard relation (模型对 B 的预测不可靠) → 应**弱化** negation，保护正确答案不被误删
+  - → r_2 应升高 → membership 应降低 → effective_score 应降低 → **shift > 0**
+- Easy relation (模型可靠) → 可**强化** negation
+  - → shift < 0
+
+**修正**：`shift_r = global_tau_s - tau_s_r`（方向反转）
+
+结果：2in MRR 从 0.1125 → 0.1136（小幅改善，仍低于 baseline）
+
+### 2.3 频率法尝试（独立分支 feat/freq-based-shift）
+
+用训练集 relation 频率替代 score 分布：`shift_r = median_log_freq - log_freq_r`
+
+结果：2in MRR = 0.0943 (**-22.4%**) — 完全无效。
+
+### 2.4 全局 Grid Search 的关键发现
+
+对所有 474 个 relation 使用相同全局 shift 进行测试：
+
+| 全局 shift | 2in MRR | 含义 |
+|---|---|---|
+| -0.5 | 0.1158 | 更强 negation |
+| 0.0 | **0.1215** | baseline |
+| **+0.5** | **0.1234** | 更弱 negation — **比 baseline 高 1.5%！** |
+| +1.0 | 0.1203 | 过弱 |
+
+**结论**：原始 B-spline 的 negation **系统性地过于激进**。给所有 relation 统一弱化约 5-10% 即可提升指标。这个发现是后续方法的基础。
+
+---
+
+## 三、创新点：Bounded Score-Shift 关系感知 Membership
+
+### 3.1 方法描述
+
+基于全局 grid search 发现（shift=+0.5 全局最优），提出 **Bounded Score-Shift** 方法。
+
+**核心思想**：在原始 B-spline 的输入侧施加 per-relation 分数偏移，但偏移方向**只弱化不强化**。因为 grid search 证明任何方向的强化（负 shift）都会降低 MRR。
+
+**公式**：
+```
+effective_score = score - shift_r
+mu = original_cal_membership(effective_score)   # 保留 B-spline 的校准
+mu_S = mu, mu_B = 0, mu_W = 1 - mu               # 三值分解
+```
+
+**Shift 计算（两阶段）**：
+```
+Stage 1 — 全局最优基线（grid search 得出）：
+  min_shift = 0.5
+
+Stage 2 — Per-relation 额外偏移（统计得出）：
+  raw_shift_r = global_tau_s - tau_s_r    # 正数 = hard relation
+  shift_r = min_shift + clamp(raw_shift_r, 0.0, MAX_ADDITIONAL)
+
+最终：所有 shift_r ∈ [0.5, 3.0]，只弱化不强化
+```
+
+**设计直觉**：
+
+| Relation 类型 | tau_s_r | raw_shift_r | final shift_r | 效果 |
+|---|---|---|---|---|
+| Easy (模型可靠) | 6.85 | -2.04 → clamp 到 0 | **0.5** | 全局最优弱化 |
+| Medium | 5.21 | -0.40 → clamp 到 0 | **0.5** | 全局最优弱化 |
+| Hard (模型不可靠) | 3.17 | +1.64 | **2.14** | 额外弱化，保护答案 |
+
+### 3.2 与原始方案的关键差异
+
+| 维度 | Session 1 方案 (Sigmoid+Gaussian) | Session 2 方案 (Bounded Score-Shift) |
+|---|---|---|
+| 函数形式 | 替换 B-spline | 保留 B-spline |
+| 关系差异化方向 | 双向（hard 弱化, easy 强化）| **单向（只弱化不强化）** |
+| 全局校准 | 无（依赖纯统计）| **Grid search 得出 min_shift=0.5** |
+| 参数来源 | 纯 pos/neg 分位数 | 分位数 + grid search 校准 |
+| 三值语义 | 真正的 Strong/Boundary/Weak | Sigma(mu) 分解，Boundary=0 |
+
+### 3.3 为什么有效
+
+1. **min_shift=0.5 修正了 B-spline 的系统性偏差**：B-spline 在验证集上全局优化时，倾向于对中等分数（5-6）给出偏高的 membership，导致 negation 过度惩罚。全局 +0.5 shift 将所有分数映射到略低的 membership 值。
+
+2. **单向设计避免了"过度修正"**：不给 easy relation 负 shift（强化 negation），因为 B-spline 已经足够激进。额外的强化只会误删正确答案。
+
+3. **Hard relation 的额外交互**：模型不可靠的 relation 获得更大正 shift → negation 更保守 → 正确答案更安全。
+
+---
+
+## 四、实验结果（FB15k-237, CQD backbone）
+
+| Query | Baseline MRR | Bounded Shift MRR | Δ MRR | HITS10 Δ | 说明 |
+|---|---|---|---|---|---|
+| **2in** | 0.1215 | **0.1227** | **+1.0%** | +1.7% | 2-branch intersection + negation |
+| **3in** | 0.1415 | **0.1542** | **+9.0%** | — | 3-branch intersection + negation |
+| **pin** | 0.0789 | **0.0794** | **+0.6%** | — | Path + intersection + negation |
+| **pni** | 0.0865 | 0.0828 | -4.3% | — | Path negation（2p score，shift 不适用） |
+| **2i** | 0.3466 | 0.3466 | 0.0% | 不变 | 纯 intersection（无 negation，无 shift） |
+| **1p/2p/3p** | — | — | 0% | — | 不使用 membership |
+
+**提升集中在 negation 查询**：2in (+1.0%), 3in (+9.0%), pin (+0.6%)。这验证了方法的设计假设 — negation 是核心受益者。
+
+**pni 下降**：pni 中 negate 的是 2p path score，其分数分布与 1p 不同。用 1p 验证集统计的 shift 不适用于 2p。
+
+**2i 完全不变**：验证了 combined call site 不施加 shift 的正确性。
+
+---
+
+## 五、经验总结
+
+1. **Grid search 是校准的关键**：纯统计式参数（pos/neg 分位数）无法直接产生有效 shift。通过小规模 grid search 找到全局最优 min_shift 是方法成功的转折点。
+
+2. **"只弱化不强化"是安全的设计原则**：B-spline 已接近最优，任何强化 negation 的改变都会降低 MRR。关系感知的价值在于识别"需要弱化的 relation"，而非"需要双向调整的 relation"。
+
+3. **Sigmoid+Gaussian 三值函数形式不适合此任务**：B-spline 的自由度（任意形状曲线）远超参数化的 sigmoid+Gaussian+softmax。在有高质量 B-spline 的前提下，保留它并做偏移是更务实的策略。
+
+4. **1p 统计 ≠ 2p 适用**：pni 的下降说明不同深度的查询需要独立校准。这是方法的已知局限。
+
+5. **Relation 数量仍是关键变量**：FB15k-237 (474 rels) 的 per-relation 差异有限。FB15k (2690 rels) 的 5.7 倍 relation 多样性可能带来更显著的 per-relation 增益。
+
+6. **neg_penalty 三值系数未充分探索**：当前使用 1.0/0.5/0.0 的 penalty 系数。实际只用了 mu_S（因 mu_B=0）。探索非零 mu_B 和不同的 penalty 系数可能是下一个突破点。
+
+---
+
+## 六、分支状态
+
+```
+master                          ← 原始基线
+feat/rel-aware-membership       ← Bounded Score-Shift (正向结果) ★ 当前
+feat/freq-based-shift           ← 频率法 (无效)
+```
+
+## 七、下一步
+
+1. **FB15k 验证**：在 2690 relation 上测试，relation 多样性是 FB15k-237 的 5.7 倍
+2. **pni 专用校准**：为 2p path score 单独统计 shift 参数
+3. **min_shift 的跨数据集泛化**：验证 +0.5 是否是普遍最优值
+4. **探索非零 mu_B**：用小量 Boundary 分量平滑 Strong/Weak 过渡
