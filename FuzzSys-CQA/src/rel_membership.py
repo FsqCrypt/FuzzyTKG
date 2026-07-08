@@ -195,6 +195,34 @@ class RelationMembership:
         mu_B = raw_B / Z
         mu_W = raw_W / Z
 
+        # Respect global score threshold (scores below threshd -> force Weak)
+        # This matches the original B-spline's hard cutoff behavior
+        if hasattr(myglobal.FS_PARAMS, 'threshd') and myglobal.FS_PARAMS.threshd is not None:
+            min_mask = (scores >= myglobal.FS_PARAMS.threshd).float()
+            mu_S = mu_S * min_mask
+            mu_B = mu_B * min_mask
+            mu_W = mu_W * min_mask + (1.0 - min_mask)
+            # Re-normalize
+            Z2 = mu_S + mu_B + mu_W
+            Z2 = torch.clamp(Z2, min=1e-8)
+            mu_S = mu_S / Z2
+            mu_B = mu_B / Z2
+            mu_W = mu_W / Z2
+
+        # Respect global max score ceiling (scores above Max_score -> force Strong)
+        if (hasattr(myglobal.FS_PARAMS, 'Max_score') and
+                myglobal.FS_PARAMS.Max_score is not None):
+            max_mask = (scores >= myglobal.FS_PARAMS.Max_score).float()
+            mu_S = mu_S * (1.0 - max_mask) + max_mask
+            mu_B = mu_B * (1.0 - max_mask)
+            mu_W = mu_W * (1.0 - max_mask)
+            # Re-normalize
+            Z3 = mu_S + mu_B + mu_W
+            Z3 = torch.clamp(Z3, min=1e-8)
+            mu_S = mu_S / Z3
+            mu_B = mu_B / Z3
+            mu_W = mu_W / Z3
+
         # Restore original shape if scores was 1D
         if len(original_shape) == 1:
             mu_S = mu_S.squeeze(0)
