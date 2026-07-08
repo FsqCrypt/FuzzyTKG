@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 python -u main.py --dataset FB15K --score_rel True --model ComplEx --rank 1000 --learning_rate 0.05 --batch_size 100 --lmbda 0.01 --w_rel 0.1 --max_epochs 100 --seed 114514

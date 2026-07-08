@@ -1,0 +1,15 @@
+KG_data/
+__pycache__/
+*.pyc
+.idea/
+logs-debug/
+log/
+logs/
+models/
+*.pkl
+*.pt
+*.pth
+*.ckpt
+checkpoint
+events.out.*
+*.pdf
