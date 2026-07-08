@@ -40,6 +40,34 @@ def cal_membership(scores):
 
     return m
 
+
+def cal_membership3(scores, rel_ids=None, call_site_type='combined'):
+    """
+    Three-value relation-aware membership function.
+
+    When use_rel_memb is enabled and rel_ids are provided, uses
+    per-relation Strong/Boundary/Weak thresholds. Otherwise falls
+    back to the original global two-value membership.
+
+    Args:
+        scores: tensor of any shape — LP scores
+        rel_ids: tensor of relation IDs, optional
+        call_site_type: 'negation_raw', 'combined', or 'union'
+
+    Returns:
+        (mu_S, mu_B, mu_W): three membership tensors, same shape as scores
+    """
+    if myglobal.FS_PARAMS.use_rel_memb and rel_ids is not None:
+        return myglobal.FS_PARAMS.REL_MEMB.cal_membership3(
+            scores, rel_ids, call_site_type)
+    else:
+        # Fallback: original global two-value membership
+        m = cal_membership(scores)
+        # Degrade to binary: Strong = m, Boundary = 0, Weak = 1-m
+        zero = torch.zeros_like(m)
+        return m, zero, 1.0 - m
+
+
 def defuzzification(w_tensor, res_tensor):
     if myglobal.DEFUZZ == 'mean':
         sum_w = torch.sum(w_tensor, dim=0)
@@ -240,9 +268,12 @@ def query_2i(entity_embeddings: nn.Module,
 
     res_tensor = (1. - a) * M + a * m
 
-    w_1 = cal_membership(res_tensor[0])
+    # Relation-aware: use first branch relation for combined scores
+    mu_S1, mu_B1, mu_W1 = cal_membership3(res_tensor[0], queries[:, 1], 'combined')
+    mu_S3, mu_B3, mu_W3 = cal_membership3(res_tensor[2], queries[:, 1], 'combined')
+    w_1 = mu_S1
     w_2 = torch.ones_like(w_1)
-    w_3 = 1 - cal_membership(res_tensor[2])
+    w_3 = 1.0 - mu_S3
 
     w_tensor = torch.vstack([w_1, w_2, w_3])
 
@@ -279,9 +310,12 @@ def query_3i(entity_embeddings: nn.Module,
     
     res_3 = (((1. - a_3) * M + a_3 * A) + ((1. - a_3) * M + a_3 * m) + ((1. - a_3) * A + a_3 * m))/3
 
-    w_1 = cal_membership(res_1)
+    # Relation-aware: use first branch relation for combined scores
+    mu_S1, mu_B1, mu_W1 = cal_membership3(res_1, queries[:, 1], 'combined')
+    mu_S3, mu_B3, mu_W3 = cal_membership3(res_3, queries[:, 1], 'combined')
+    w_1 = mu_S1
     w_2 = torch.ones_like(w_1)
-    w_3 = 1 - cal_membership(res_3)
+    w_3 = 1.0 - mu_S3
 
     res_tensor = torch.vstack([res_1, res_2, res_3])
     w_tensor = torch.vstack([w_1, w_2, w_3])
@@ -361,9 +395,12 @@ def query_pi(entity_embeddings: nn.Module,
 
     res_tensor = (1. - a) * M + a * m
 
-    w_1 = cal_membership(res_tensor[0])
+    # Relation-aware: use first path relation for combined scores
+    mu_S1, mu_B1, mu_W1 = cal_membership3(res_tensor[0], queries[:, 1], 'combined')
+    mu_S3, mu_B3, mu_W3 = cal_membership3(res_tensor[2], queries[:, 1], 'combined')
+    w_1 = mu_S1
     w_2 = torch.ones_like(w_1)
-    w_3 = 1 - cal_membership(res_tensor[2])
+    w_3 = 1.0 - mu_S3
 
     w_tensor = torch.vstack([w_1, w_2, w_3])
 
@@ -391,7 +428,9 @@ def query_2u_dnf(entity_embeddings: nn.Module,
 
     res_tensor = (1. - a) * MM + a * M
 
-    w_1 = cal_membership(M)
+    # Relation-aware: use first branch relation for union
+    mu_S, mu_B, mu_W = cal_membership3(M, queries[:, 1], 'union')
+    w_1 = mu_S
     w_2 = w_1
     w_3 = torch.ones_like(w_1)
 
@@ -463,8 +502,11 @@ def query_2in(entity_embeddings: nn.Module,
     scores_2 = query_1p(entity_embeddings=entity_embeddings, predicate_embeddings=predicate_embeddings,
                         queries=queries[:, 2:4], scoring_function=scoring_function)
 
-    y_2 = cal_membership(scores_2)
-    r_2 = 1 - y_2
+    # Three-value relation-aware negation:
+    #   Strong -> full penalty (1.0), Boundary -> half penalty (0.5), Weak -> no penalty (0.0)
+    mu_S, mu_B, mu_W = cal_membership3(scores_2, queries[:, 3], 'negation_raw')
+    neg_penalty = 1.0 * mu_S + 0.5 * mu_B + 0.0 * mu_W
+    r_2 = 1.0 - neg_penalty
 
     (a_1, a_2, a_3) = myglobal.FS_PARAMS.ALPHA_N
 
@@ -474,10 +516,11 @@ def query_2in(entity_embeddings: nn.Module,
 
     w_1 = torch.ones_like(res_1)
 
-    w_21 = cal_membership(res_2/(1 - a_2))
-    w_22 = 1 - cal_membership(res_2)
-    w_2 = w_21 + w_22
-    
+    # Defuzzification weights: use Strong component of combined scores
+    mu_S21, mu_B21, mu_W21 = cal_membership3(res_2/(1 - a_2), queries[:, 1], 'combined')
+    mu_S22, mu_B22, mu_W22 = cal_membership3(res_2, queries[:, 1], 'combined')
+    w_2 = mu_S21 + (1.0 - mu_S22)
+
     w_3 = torch.ones_like(res_3)
 
     res_tensor = torch.vstack([res_1, res_2, res_3])
@@ -503,8 +546,10 @@ def query_3in(entity_embeddings: nn.Module,
                         queries=queries[:, 4:6], scoring_function=scoring_function)
 
 
-    y_3 = cal_membership(scores_3)
-    r_3 = 1 - y_3
+    # Three-value relation-aware negation for third branch
+    mu_S, mu_B, mu_W = cal_membership3(scores_3, queries[:, 5], 'negation_raw')
+    neg_penalty = 1.0 * mu_S + 0.5 * mu_B + 0.0 * mu_W
+    r_3 = 1.0 - neg_penalty
 
     (a_1, a_2, a_3) = myglobal.FS_PARAMS.ALPHA_N
 
@@ -514,9 +559,10 @@ def query_3in(entity_embeddings: nn.Module,
 
     w_1 = torch.ones_like(res_1)
 
-    w_21 = cal_membership(res_2/(1 - a_2))
-    w_22 = 1 - cal_membership(res_2)
-    w_2 = w_21 + w_22
+    # Defuzzification weights: use Strong component of combined scores
+    mu_S21, mu_B21, mu_W21 = cal_membership3(res_2/(1 - a_2), queries[:, 1], 'combined')
+    mu_S22, mu_B22, mu_W22 = cal_membership3(res_2, queries[:, 1], 'combined')
+    w_2 = mu_S21 + (1.0 - mu_S22)
 
     w_3 = torch.ones_like(res_3)
 
@@ -588,8 +634,10 @@ def query_pin(entity_embeddings: nn.Module,
     scores_2 = query_1p(entity_embeddings=entity_embeddings, predicate_embeddings=predicate_embeddings,
                         queries=queries[:, 3:5], scoring_function=scoring_function)
 
-    y_2 = cal_membership(scores_2)
-    r_2 = 1 - y_2
+    # Three-value relation-aware negation for second (negated) branch
+    mu_S, mu_B, mu_W = cal_membership3(scores_2, queries[:, 4], 'negation_raw')
+    neg_penalty = 1.0 * mu_S + 0.5 * mu_B + 0.0 * mu_W
+    r_2 = 1.0 - neg_penalty
 
     (a_1, a_2, a_3) = myglobal.FS_PARAMS.ALPHA_N
 
@@ -598,10 +646,11 @@ def query_pin(entity_embeddings: nn.Module,
     res_3 = ((1 - a_3) + a_3 * r_2) * scores_1
 
     w_1 = torch.ones_like(res_1)
-    
-    w_21 = cal_membership(res_2/(1 - a_2))
-    w_22 = 1 - cal_membership(res_2)
-    w_2 = w_21 + w_22
+
+    # Defuzzification weights
+    mu_S21, mu_B21, mu_W21 = cal_membership3(res_2/(1 - a_2), queries[:, 1], 'combined')
+    mu_S22, mu_B22, mu_W22 = cal_membership3(res_2, queries[:, 1], 'combined')
+    w_2 = mu_S21 + (1.0 - mu_S22)
 
     w_3 = torch.ones_like(res_3)
 
@@ -630,8 +679,11 @@ def query_pni(entity_embeddings: nn.Module,
     M2 = torch.max(scores_2)
     scores_1 = scores_1*M2/M1
 
-    y_1 = cal_membership(scores_1)
-    r_1 = 1 - y_1
+    # Three-value relation-aware negation for path (first) branch
+    # Use the first path relation for negation check
+    mu_S, mu_B, mu_W = cal_membership3(scores_1, queries[:, 1], 'negation_raw')
+    neg_penalty = 1.0 * mu_S + 0.5 * mu_B + 0.0 * mu_W
+    r_1 = 1.0 - neg_penalty
 
     (a_1, a_2, a_3) = myglobal.FS_PARAMS.ALPHA_N
 
@@ -640,10 +692,11 @@ def query_pni(entity_embeddings: nn.Module,
     res_3 = ((1 - a_3) + a_3 * r_1) * scores_2
 
     w_1 = torch.ones_like(res_1)
-    
-    w_21 = cal_membership(res_2/(1 - a_2))
-    w_22 = 1 - cal_membership(res_2)
-    w_2 = w_21 + w_22
+
+    # Defuzzification weights
+    mu_S21, mu_B21, mu_W21 = cal_membership3(res_2/(1 - a_2), queries[:, 1], 'combined')
+    mu_S22, mu_B22, mu_W22 = cal_membership3(res_2, queries[:, 1], 'combined')
+    w_2 = mu_S21 + (1.0 - mu_S22)
 
     w_3 = torch.ones_like(res_3)
 

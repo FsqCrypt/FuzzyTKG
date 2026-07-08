@@ -19,7 +19,7 @@ class FS_Params:
         self.EXP_1 = None
         self.EXP_2 = None
         self.EXP_3 = None
-        
+
         self.threshd = None
         self.Epi = None
         self.Max_score = None
@@ -27,6 +27,10 @@ class FS_Params:
         self.ALPHA_I_L = None
         self.ALPHA_U_L = None
         self.ALPHA_N = None
+
+        # Relation-aware three-value membership
+        self.REL_MEMB = None      # RelationMembership instance
+        self.use_rel_memb = False # Enable relation-aware membership
 
     def set_static_fs_params(self, backbone, memb_type, dataname):
         self.BACKBONE = backbone
@@ -80,6 +84,20 @@ class FS_Params:
         self.ALPHA_I_L = tuple(params_data['I'])
         self.ALPHA_U_L = tuple(params_data['U'])
         self.ALPHA_N = tuple(params_data['N'])
+
+    def load_rel_membership_params(self, dataname):
+        """Load relation-aware three-value membership parameters."""
+        from src.rel_membership import RelationMembership
+        params_fn = f'./params/{dataname}_{self.BACKBONE}_rel_memb_params.yml'
+        print(f'Loading relation membership params from {params_fn} ...')
+
+        with open(params_fn, 'r') as fin:
+            params_data = yaml.load(fin, Loader=yaml.Loader)
+
+        nrelation = int(params_data['nrelation'])
+        self.REL_MEMB = RelationMembership(nrelation, params_data)
+        self.use_rel_memb = True
+        print(f'Relation-aware membership enabled ({nrelation} relations)')
 
 
 FS_PARAMS = FS_Params()

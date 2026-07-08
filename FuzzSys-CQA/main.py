@@ -109,6 +109,8 @@ def parse_args(args=None):
     parser.add_argument('--wo-fl', action='store_true', help="do not use fuzzy system")
     parser.add_argument('--adj_path', type=str, default=None, help="ADJ path")
     parser.add_argument('--threshd', type=float, default=4.7, help="threshd for membership functions")
+    parser.add_argument('--use-rel-memb', action='store_true', default=False,
+                        help='use relation-aware three-value membership (Strong/Boundary/Weak)')
 
     return parser.parse_args(args)
 
@@ -537,6 +539,9 @@ def main(args):
 
         myglobal.FS_PARAMS.load_rule_params(args.dataname)
 
+        if args.use_rel_memb:
+            myglobal.FS_PARAMS.load_rel_membership_params(args.dataname)
+
         logging.info('Evaluating on Test Dataset...')
         test_all_metrics = evaluate(model, test_easy_answers, test_hard_answers, args, test_dataloader, query_name_dict, 'Test', step, writer)
 
@@ -546,6 +551,9 @@ def main(args):
 
     if args.do_valid and args.do_grid:
         myglobal.FS_PARAMS.load_membership_params(args.dataname)
+
+        if args.use_rel_memb:
+            myglobal.FS_PARAMS.load_rel_membership_params(args.dataname)
 
         myglobal.GRID = True
 
