@@ -495,7 +495,7 @@ def query_pni(entity_embeddings: nn.Module,
     scores_1 = scores_1 * M2/M1 
 
     # Three-value relation-aware negation for path branch
-    mu_S, mu_B, mu_W = cal_membership3(scores_1, queries[:, 1], 'negation_raw')
+    mu_S, mu_B, mu_W = cal_membership3(scores_1, queries[:, 1], 'negation_path')
     neg_penalty = 1.0 * mu_S + 0.5 * mu_B + 0.0 * mu_W
     r_1 = 1.0 - neg_penalty
 

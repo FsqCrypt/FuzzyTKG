@@ -126,22 +126,20 @@ class RelationMembership:
         if B_rel == 1 and B_score > 1:
             rel_ids = rel_ids.expand(B_score)
 
-        # For negation raw: apply per-relation score shift
-        # Direction: hard relations (low tau_s, model unreliable) need WEAKER
-        # negation to avoid accidentally removing correct answers.
-        #   shift_r > 0 → effective_score lower → membership lower → r_2 higher → weaker negation
-        # Easy relations (high tau_s, model reliable) can use STRONGER negation.
-        #   shift_r < 0 → effective_score higher → membership higher → r_2 lower → stronger negation
+        # For negation: apply per-relation score shift only for 1p scores.
+        # 'negation_raw' = 1p negated branch (2in, 3in, pin) — shift applies.
+        # 'negation_path' = 2p/3p negated branch (pni) — no shift;
+        #   path scores have different distributions, 1p-derived shifts don't apply.
         if call_site_type == 'negation_raw':
-            shift = self._get_shift_for_rel(rel_ids)  # [B]
-            # Clamp shift to reasonable range
+            shift = self._get_shift_for_rel(rel_ids)
             shift = torch.clamp(shift, min=-3.0, max=3.0)
-            # Reshape for broadcasting
             if shift.dim() == 1:
-                shift = shift.unsqueeze(1)  # [B, 1]
-            shifted_scores = scores - shift  # hard rel (pos shift) → scores down → lower membership → weaker negation
+                shift = shift.unsqueeze(1)
+            shifted_scores = scores - shift
+        elif call_site_type == 'negation_path':
+            shifted_scores = scores  # no shift for path-based negation
         else:
-            shifted_scores = scores  # no shift for combined/union
+            shifted_scores = scores
 
         # Evaluate original global membership function on shifted scores
         # Import here to avoid circular import
