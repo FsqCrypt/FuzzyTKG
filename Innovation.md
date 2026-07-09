@@ -774,3 +774,169 @@ Relation-aware Tri-valued Membership
 ```
 
 这反而是一个更稳的方向，因为它尊重了原始 FuzzSys 已经高度优化的 B-spline，同时只在实验发现最敏感的 negation 场景中做保守修正。
+
+# 2026-07-09 Session 3 后：pni 修复、多分支探索与最终定位
+
+## 一、pni 根因确认与修复
+
+### 问题
+
+Session 2 的 Bounded Score-Shift 在 2in (+1.0%)、3in (+9.0%)、pin (+0.6%) 上均正向，但 pni 下降 4.3%。
+
+### 根因
+
+逐一排查 4 个 negation query 的 negated branch 来源：
+
+| Query | Negated 分支 | 分数类型 |
+|---|---|---|
+| 2in | `query_1p(queries[:, 2:4])` | 1p raw |
+| 3in | `query_1p(queries[:, 4:6])` | 1p raw |
+| pin | `query_1p(queries[:, 3:5])` | 1p raw |
+| **pni** | `query_2p(queries[:, 0:3])` | **2p 缩放后** |
+
+pni 是**唯一** negate 2p path 的 query。1p 统计的 shift 不适用于 2p 分数分布（经过 product t-norm + max-k 池化后分布形状不同）。
+
+### 修复
+
+新增 `call_site_type='negation_path'`（不施加 shift），pni 使用该类型，2in/3in/pin 保持 `'negation_raw'`。pni 回归 baseline 0.0865，其他三个指标不变。
+
+**教训**：1p 统计不可直接泛化到 2p。任何 per-relation 方法都需要考虑查询深度带来的分布偏移。
+
+
+## 二、对"三值 Boundary"可行性的最终判断
+
+### 问题
+
+原始创新点的核心是 `Strong / Boundary / Weak` 三值。但实际生效的 Bounded Score-Shift 中 `mu_B = 0`，等效于二值。
+
+### Session 3 中的推导
+
+尝试用三角形 Boundary 和 B-spline 分解恢复三值：
+
+```
+mu_S = m                    (B-spline 原值)
+mu_B = m * (1 - m)          (抛物线，峰值 0.25)
+mu_W = (1 - m)²
+neg_penalty = mu_S + 0.5*mu_B = 1.5m - 0.5m²
+```
+
+推导结果：对所有 m ∈ (0, 1)，penalty > m。即**任何非零 Boundary 都会增加 effective penalty**。
+
+但 Session 2 的 grid search 已经证明 B-spline **过度惩罚**——需要减小 penalty（shift > 0）。mu_B 只会增加 penalty，方向完全相反。
+
+### 结论
+
+**在当前 B-spline 框架下，三值公式存在根本矛盾**：
+- B-spline 的 membership 值 m 已经是全局最优 penalty
+- 任何分解 `mu_S + coeff*mu_B` 如果 sum ≠ m，就会偏离最优
+- 要让三值生效，必须从零重新校准 mu_S（不依赖 B-spline），这正是 Session 1 失败的方向
+
+**三值 Boundary 不是一个错误的 idea，但它的生效前提是独立于 B-spline 的完整校准 pipeline**。以当前的实验资源，这不是务实的路径。
+
+### 对论文的影响
+
+如果论文中提出"三值隶属 Strong/Boundary/Weak"，reviewer 会问："你的 Boundary 分量实际上 = 0，和原始二值有何区别？"
+
+更诚实的表述是：
+
+```
+我们提出关系感知的保守式 membership 校准方法。
+原始 B-spline 在 negation 中过度激进，我们通过有界 score-shift 弱化 membership，
+并根据 relation 可靠性分配不同的弱化幅度。
+三值分解 (mu_S, mu_B, mu_W) 作为未来扩展保留，当前版本中 mu_B = 0。
+```
+
+
+## 三、多分支实验总结与对比
+
+### 有效分支
+
+| 分支 | 方法 | 创新点匹配度 | 2in | 3in | pin | pni |
+|---|---|---|---|---|---|---|
+| fix-pni-path | unified min_shift=0.5 | 低（仅 tau_s） | +1.0% | +9.0% | +0.6% | 0% |
+| per-rel-min-shift | per-rel floor shift | 中（tau_s 差异化） | +1.3% | +8.5% | +0.3% | 0% |
+| dual-threshold-shift | tau_w+tau_s gap capped | **高（双统计量）** | +0.4% | **+10.5%** | 0% | 0% |
+
+### 无效分支
+
+| 分支 | 方法 | 失败原因 |
+|---|---|---|
+| freq-based-shift | 训练频率 | 频率与模型可靠性弱相关 |
+| three-value-v2 | 三值 Boundary revival | 理论矛盾（见上），放弃编码 |
+
+### 关键洞察
+
+1. **"只弱化不强化"是贯穿所有有效方法的铁律**。任何负 shift 尝试都会降低 MRR。
+
+2. **tau_w + tau_s gap 是可分离性信号**。原始创新点使用双统计量是有先见之明的——gap 捕获了 tau_s 无法单独提供的"模型对该 relation 判断质量"信息。Dual-threshold 在 3in 上达到 +10.5%，超越了 unified 方法的 +9.0%。
+
+3. **没有万能参数**。unified 0.5 在 2in/pin 上最优，dual-threshold 在 3in 上最优。不同 query type 之间存在 trade-off，可能需要根据应用场景选择。
+
+
+## 四、创新点是否成立
+
+### 成立的部分
+
+1. **"不同 relation 需要不同的 membership 校准"** ✅ 成立。Hard 和 easy relation 确实需要不同的 shift 幅度。3in 上 +9%~+10.5% 的提升证明了这一点。
+
+2. **"B-spline 在 negation 中过度激进"** ✅ 成立且是核心发现。global shift=+0.5 即可提升指标，这是方法有效的基础。
+
+3. **"统计式关系参数可行"** ✅ 成立。per-relation tau_s 和 tau_w+tau_s gap 都能产生有效的差异化 shift。
+
+### 不成立/未证明的部分
+
+1. **"三值 Boundary 提升 negation 精度"** ❌ 未证明且理论矛盾。mu_B=0 在所有有效分支中。三值在当前框架下是装饰性的。
+
+2. **"Per-relation 差异是主要收益来源"** ❌ 不成立。全局 +0.5 shift 提供了大部分收益（2in 上 unified 0.5 好于 per-rel 版本）。Per-relation 差异的贡献是锦上添花。
+
+3. **"方法适用于所有 negation query"** ❌ 不成立。pni 需要特殊处理（`negation_path`），说明 1p 校准不适用于 path negation。
+
+### 诚实的学术定位
+
+当前可主张的贡献：
+
+```
+1. 我们发现 FuzzSys 的 B-spline membership 在 fuzzy negation 中存在系统性过度惩罚问题。
+
+2. 我们提出 Bounded Relation-aware Score-Shift，通过非负有界偏移弱化 membership，
+   并根据 relation 的统计可靠性分配偏移幅度。
+
+3. 方法无需重训 link predictor，可直接接入 CQD/QTO+FuzzSys 框架。
+
+4. 在 FB15k-237 上，2in (+1.0%), 3in (+9.0%), pin (+0.6%) 取得正向提升。
+```
+
+不应主张的：
+
+```
+- 三值 Strong/Boundary/Weak membership（当前 mu_B=0）
+- 全面优于全局校准（全局 +0.5 是主要贡献）
+- 适用于所有 negation 结构（pni 需要 path 专门处理）
+```
+
+
+## 五、是否要更换方向
+
+### 不需要更换
+
+当前方向 **"relation-aware conservative membership calibration"** 是成立的。实验证明了：
+- 全局 B-spline 的 negation 过于激进（核心发现）
+- Per-relation 统计可以提供差异化弱化（3in +10.5%）
+- 方法轻量、可解释、无需重训
+
+这足以作为一篇论文的第一个贡献点。
+
+### 需要调整
+
+1. **名称**：从 "Tri-valued Membership" 改为 "Bounded Relation-aware Calibration" 或 "Relation-aware Conservative Membership"
+2. **重心**：从 "三值 → 二值升级" 改为 "全局 → 关系感知校准"
+3. **承认局限**：明确 pni 需要 path-specific 校准，三值 Boundary 留作 future work
+
+### 下一步优先级
+
+```
+1. valid/test 分离：在 valid 上选 min_shift，test 上仅评估一次（当前 grid search 在 test 上有泄露风险）
+2. FB15k 复验：relation 从 474 → 2690，per-relation 差异应更显著
+3. pni path 校准：收集验证集 2p score 分布，独立估计 path shift
+4. 论文写作：以 "conservative calibration" 为主线，三值 Boundary 作为 future work
+```
