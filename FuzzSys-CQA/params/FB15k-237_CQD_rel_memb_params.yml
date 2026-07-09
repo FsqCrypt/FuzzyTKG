@@ -1,126 +1,126 @@
-# Bounded relation-aware params for FB15k-237 (CQD)
-# min_shift=0.5 (global optimal), only weaken negation for hard rels
+# Per-relation min_shift params for FB15k-237 (CQD)
+# Each relation gets its own floor shift based on difficulty
 
 nrelation: 474
-global_tau_s: 4.8108
+global_tau_s: 4.7358
 
 clusters:
   - id: 0
-    shift: 0.5
+    shift: 0.3
     n_relations: 0
   - id: 1
-    shift: 0.75
+    shift: 0.6
     n_relations: 0
   - id: 2
-    shift: 1.5
+    shift: 1.0
     n_relations: 0
 
 relations:
-  0: {shift: 0.5000, tau_s: 6.8520, cluster: 0, n_samples: 28}
+  0: {shift: 0.3048, tau_s: 6.8520, cluster: 0, n_samples: 28}
   1: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  2: {shift: 1.9145, tau_s: 3.3963, cluster: 2, n_samples: 39}
-  3: {shift: 2.1369, tau_s: 3.1740, cluster: 2, n_samples: 31}
+  2: {shift: 1.6387, tau_s: 3.0971, cluster: 2, n_samples: 36}
+  3: {shift: 1.4137, tau_s: 3.3221, cluster: 2, n_samples: 31}
   4: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  5: {shift: 0.5000, tau_s: 5.2102, cluster: 0, n_samples: 31}
-  6: {shift: 1.0780, tau_s: 4.2329, cluster: 1, n_samples: 27}
-  7: {shift: 1.0797, tau_s: 4.2311, cluster: 1, n_samples: 27}
+  5: {shift: 0.5037, tau_s: 4.8504, cluster: 1, n_samples: 32}
+  6: {shift: 0.7513, tau_s: 4.2329, cluster: 1, n_samples: 27}
+  7: {shift: 0.7521, tau_s: 4.2311, cluster: 1, n_samples: 27}
   8: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   9: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   10: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   11: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  12: {shift: 2.3013, tau_s: 3.0095, cluster: 2, n_samples: 36}
-  13: {shift: 2.6236, tau_s: 2.6872, cluster: 2, n_samples: 36}
-  14: {shift: 0.5000, tau_s: 5.0929, cluster: 0, n_samples: 168}
-  15: {shift: 0.5000, tau_s: 5.1418, cluster: 0, n_samples: 37}
-  16: {shift: 0.5000, tau_s: 5.3139, cluster: 0, n_samples: 32}
-  17: {shift: 0.8925, tau_s: 4.4183, cluster: 1, n_samples: 32}
+  12: {shift: 2.353, tau_s: 2.3828, cluster: 2, n_samples: 38}
+  13: {shift: 1.9883, tau_s: 2.7475, cluster: 2, n_samples: 41}
+  14: {shift: 0.4643, tau_s: 4.9854, cluster: 0, n_samples: 119}
+  15: {shift: 0.4332, tau_s: 5.1112, cluster: 0, n_samples: 41}
+  16: {shift: 0.7832, tau_s: 4.1618, cluster: 1, n_samples: 35}
+  17: {shift: 0.472, tau_s: 4.9574, cluster: 0, n_samples: 34}
   18: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   19: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  20: {shift: 0.5000, tau_s: 6.3439, cluster: 0, n_samples: 54}
-  21: {shift: 0.5000, tau_s: 6.3242, cluster: 0, n_samples: 76}
-  22: {shift: 0.5000, tau_s: 7.7476, cluster: 0, n_samples: 30}
+  20: {shift: 0.3186, tau_s: 6.1643, cluster: 0, n_samples: 62}
+  21: {shift: 0.3168, tau_s: 6.2173, cluster: 0, n_samples: 70}
+  22: {shift: 0.3008, tau_s: 7.7504, cluster: 0, n_samples: 30}
   23: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   24: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  25: {shift: 2.3791, tau_s: 2.9317, cluster: 2, n_samples: 24}
-  26: {shift: 0.5000, tau_s: 5.1051, cluster: 0, n_samples: 83}
-  27: {shift: 0.5000, tau_s: 4.8264, cluster: 0, n_samples: 279}
-  28: {shift: 0.5000, tau_s: 5.7534, cluster: 0, n_samples: 30}
+  25: {shift: 1.8041, tau_s: 2.9317, cluster: 2, n_samples: 24}
+  26: {shift: 0.4878, tau_s: 4.9024, cluster: 0, n_samples: 71}
+  27: {shift: 0.4365, tau_s: 5.0967, cluster: 0, n_samples: 393}
+  28: {shift: 0.3234, tau_s: 6.0481, cluster: 0, n_samples: 32}
   29: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  30: {shift: 1.3935, tau_s: 3.9173, cluster: 2, n_samples: 54}
-  31: {shift: 0.8002, tau_s: 4.5106, cluster: 1, n_samples: 30}
+  30: {shift: 1.1452, tau_s: 3.5906, cluster: 2, n_samples: 69}
+  31: {shift: 0.7654, tau_s: 4.2015, cluster: 1, n_samples: 30}
   32: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   33: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  34: {shift: 0.5000, tau_s: 5.3956, cluster: 0, n_samples: 36}
-  35: {shift: 0.6265, tau_s: 4.6843, cluster: 1, n_samples: 275}
-  36: {shift: 0.5000, tau_s: 5.2192, cluster: 0, n_samples: 50}
+  34: {shift: 0.7059, tau_s: 4.3341, cluster: 1, n_samples: 34}
+  35: {shift: 0.5231, tau_s: 4.7908, cluster: 1, n_samples: 304}
+  36: {shift: 0.4101, tau_s: 5.2210, cluster: 0, n_samples: 46}
   37: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  38: {shift: 0.5000, tau_s: 4.8118, cluster: 0, n_samples: 35}
-  39: {shift: 0.5210, tau_s: 4.7899, cluster: 0, n_samples: 93}
-  40: {shift: 0.8099, tau_s: 4.5009, cluster: 1, n_samples: 90}
-  41: {shift: 0.5000, tau_s: 5.2308, cluster: 0, n_samples: 34}
-  42: {shift: 0.9238, tau_s: 4.3870, cluster: 1, n_samples: 38}
-  43: {shift: 0.5507, tau_s: 4.7602, cluster: 0, n_samples: 51}
-  44: {shift: 2.3080, tau_s: 3.0028, cluster: 2, n_samples: 51}
-  45: {shift: 2.1833, tau_s: 3.1275, cluster: 2, n_samples: 31}
-  46: {shift: 0.5000, tau_s: 6.7877, cluster: 0, n_samples: 34}
-  47: {shift: 0.5000, tau_s: 6.7887, cluster: 0, n_samples: 84}
-  48: {shift: 2.9814, tau_s: 2.3295, cluster: 2, n_samples: 30}
-  49: {shift: 3.0000, tau_s: 2.1000, cluster: 2, n_samples: 40}
-  50: {shift: 0.5000, tau_s: 5.0344, cluster: 0, n_samples: 30}
+  38: {shift: 0.6237, tau_s: 4.5243, cluster: 1, n_samples: 36}
+  39: {shift: 0.6648, tau_s: 4.4275, cluster: 1, n_samples: 92}
+  40: {shift: 0.4812, tau_s: 4.9247, cluster: 0, n_samples: 132}
+  41: {shift: 0.634, tau_s: 4.4996, cluster: 1, n_samples: 40}
+  42: {shift: 0.678, tau_s: 4.3971, cluster: 1, n_samples: 37}
+  43: {shift: 0.9288, tau_s: 3.8154, cluster: 1, n_samples: 45}
+  44: {shift: 1.6745, tau_s: 3.0614, cluster: 2, n_samples: 45}
+  45: {shift: 1.535, tau_s: 3.2008, cluster: 2, n_samples: 32}
+  46: {shift: 0.3059, tau_s: 6.7432, cluster: 0, n_samples: 35}
+  47: {shift: 0.3054, tau_s: 6.7887, cluster: 0, n_samples: 84}
+  48: {shift: 3.5, tau_s: 1.1914, cluster: 2, n_samples: 30}
+  49: {shift: 2.9759, tau_s: 1.7599, cluster: 2, n_samples: 44}
+  50: {shift: 0.453, tau_s: 5.0286, cluster: 0, n_samples: 30}
   51: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  52: {shift: 0.5000, tau_s: 5.4444, cluster: 0, n_samples: 35}
+  52: {shift: 0.3323, tau_s: 5.8811, cluster: 0, n_samples: 37}
   53: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  54: {shift: 0.5393, tau_s: 4.7715, cluster: 0, n_samples: 77}
-  55: {shift: 0.5000, tau_s: 5.5249, cluster: 0, n_samples: 38}
-  56: {shift: 0.7045, tau_s: 4.6063, cluster: 1, n_samples: 32}
+  54: {shift: 0.5412, tau_s: 4.7383, cluster: 1, n_samples: 77}
+  55: {shift: 0.4909, tau_s: 4.8918, cluster: 0, n_samples: 33}
+  56: {shift: 0.434, tau_s: 5.1075, cluster: 0, n_samples: 31}
   57: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  58: {shift: 0.5000, tau_s: 5.6346, cluster: 0, n_samples: 154}
-  59: {shift: 0.5000, tau_s: 5.5942, cluster: 0, n_samples: 71}
-  60: {shift: 0.5000, tau_s: 5.1525, cluster: 0, n_samples: 32}
-  61: {shift: 0.5000, tau_s: 4.9658, cluster: 0, n_samples: 51}
-  62: {shift: 0.7800, tau_s: 4.5308, cluster: 1, n_samples: 36}
-  63: {shift: 0.5000, tau_s: 5.0991, cluster: 0, n_samples: 341}
-  64: {shift: 0.5000, tau_s: 5.1016, cluster: 0, n_samples: 112}
-  65: {shift: 0.5000, tau_s: 5.1465, cluster: 0, n_samples: 30}
+  58: {shift: 0.3618, tau_s: 5.5392, cluster: 0, n_samples: 123}
+  59: {shift: 0.3356, tau_s: 5.8312, cluster: 0, n_samples: 73}
+  60: {shift: 0.6095, tau_s: 4.5588, cluster: 1, n_samples: 32}
+  61: {shift: 0.448, tau_s: 5.0485, cluster: 0, n_samples: 45}
+  62: {shift: 0.3911, tau_s: 5.3278, cluster: 0, n_samples: 32}
+  63: {shift: 0.7018, tau_s: 4.3433, cluster: 1, n_samples: 193}
+  64: {shift: 0.4362, tau_s: 5.0977, cluster: 0, n_samples: 123}
+  65: {shift: 0.4475, tau_s: 5.0508, cluster: 0, n_samples: 30}
   66: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   67: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  68: {shift: 0.5000, tau_s: 7.3706, cluster: 0, n_samples: 30}
+  68: {shift: 0.3257, tau_s: 5.9997, cluster: 0, n_samples: 30}
   69: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   70: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  71: {shift: 0.5000, tau_s: 6.4499, cluster: 0, n_samples: 81}
+  71: {shift: 0.3112, tau_s: 6.4210, cluster: 0, n_samples: 68}
   72: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   73: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   74: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  75: {shift: 0.5000, tau_s: 6.1720, cluster: 0, n_samples: 31}
-  76: {shift: 2.4969, tau_s: 2.8140, cluster: 2, n_samples: 31}
-  77: {shift: 2.1800, tau_s: 3.1308, cluster: 2, n_samples: 35}
-  78: {shift: 2.2297, tau_s: 3.0811, cluster: 2, n_samples: 30}
+  75: {shift: 0.3301, tau_s: 5.9183, cluster: 0, n_samples: 30}
+  76: {shift: 1.6863, tau_s: 3.0495, cluster: 2, n_samples: 30}
+  77: {shift: 1.6884, tau_s: 3.0474, cluster: 2, n_samples: 34}
+  78: {shift: 1.2957, tau_s: 3.4401, cluster: 2, n_samples: 30}
   79: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  80: {shift: 0.6192, tau_s: 4.6917, cluster: 1, n_samples: 18}
+  80: {shift: 0.558, tau_s: 4.6917, cluster: 1, n_samples: 18}
   81: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  82: {shift: 0.8243, tau_s: 4.4866, cluster: 1, n_samples: 36}
-  83: {shift: 0.9694, tau_s: 4.3415, cluster: 1, n_samples: 77}
+  82: {shift: 0.7281, tau_s: 4.2844, cluster: 1, n_samples: 39}
+  83: {shift: 0.4366, tau_s: 5.0963, cluster: 0, n_samples: 77}
   84: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  85: {shift: 0.5000, tau_s: 5.0586, cluster: 0, n_samples: 37}
-  86: {shift: 0.5000, tau_s: 6.0837, cluster: 0, n_samples: 30}
+  85: {shift: 0.7231, tau_s: 4.2957, cluster: 1, n_samples: 33}
+  86: {shift: 0.3089, tau_s: 6.5375, cluster: 0, n_samples: 30}
   87: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   88: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  89: {shift: 1.5651, tau_s: 3.7457, cluster: 2, n_samples: 33}
+  89: {shift: 0.8255, tau_s: 4.0664, cluster: 1, n_samples: 32}
   90: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   91: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  92: {shift: 0.5000, tau_s: 5.1487, cluster: 0, n_samples: 30}
-  93: {shift: 0.7133, tau_s: 4.5975, cluster: 1, n_samples: 33}
-  94: {shift: 0.5000, tau_s: 5.3277, cluster: 0, n_samples: 41}
-  95: {shift: 0.8744, tau_s: 4.4364, cluster: 1, n_samples: 32}
-  96: {shift: 0.5000, tau_s: 5.8925, cluster: 0, n_samples: 30}
+  92: {shift: 0.7117, tau_s: 4.3211, cluster: 1, n_samples: 30}
+  93: {shift: 0.594, tau_s: 4.5975, cluster: 1, n_samples: 33}
+  94: {shift: 0.658, tau_s: 4.4432, cluster: 1, n_samples: 45}
+  95: {shift: 0.6152, tau_s: 4.5447, cluster: 1, n_samples: 32}
+  96: {shift: 0.4428, tau_s: 5.0700, cluster: 0, n_samples: 30}
   97: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   98: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   99: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   100: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  101: {shift: 2.1860, tau_s: 3.1248, cluster: 2, n_samples: 30}
-  102: {shift: 0.5000, tau_s: 7.4642, cluster: 0, n_samples: 29}
+  101: {shift: 1.1486, tau_s: 3.5872, cluster: 2, n_samples: 30}
+  102: {shift: 0.3014, tau_s: 7.4642, cluster: 0, n_samples: 29}
   103: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  104: {shift: 0.8383, tau_s: 4.4725, cluster: 1, n_samples: 37}
+  104: {shift: 0.7168, tau_s: 4.3097, cluster: 1, n_samples: 35}
   105: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   106: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   107: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
@@ -128,115 +128,115 @@ relations:
   109: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   110: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   111: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  112: {shift: 0.5000, tau_s: 10.6201, cluster: 0, n_samples: 30}
-  113: {shift: 0.5000, tau_s: 11.5579, cluster: 0, n_samples: 30}
+  112: {shift: 0.3, tau_s: 11.3483, cluster: 0, n_samples: 30}
+  113: {shift: 0.3, tau_s: 11.3759, cluster: 0, n_samples: 30}
   114: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   115: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  116: {shift: 0.5000, tau_s: 5.9100, cluster: 0, n_samples: 30}
-  117: {shift: 0.5000, tau_s: 5.7435, cluster: 0, n_samples: 32}
-  118: {shift: 2.5623, tau_s: 2.7485, cluster: 2, n_samples: 44}
-  119: {shift: 3.0000, tau_s: 1.9063, cluster: 2, n_samples: 31}
+  116: {shift: 0.3431, tau_s: 5.7306, cluster: 0, n_samples: 30}
+  117: {shift: 0.3399, tau_s: 5.7716, cluster: 0, n_samples: 32}
+  118: {shift: 2.7881, tau_s: 1.9477, cluster: 2, n_samples: 43}
+  119: {shift: 2.8295, tau_s: 1.9063, cluster: 2, n_samples: 31}
   120: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   121: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  122: {shift: 0.5000, tau_s: 5.6731, cluster: 0, n_samples: 33}
-  123: {shift: 0.5000, tau_s: 5.3158, cluster: 0, n_samples: 67}
-  124: {shift: 0.5000, tau_s: 7.9129, cluster: 0, n_samples: 15}
+  122: {shift: 0.3956, tau_s: 5.3010, cluster: 0, n_samples: 31}
+  123: {shift: 0.3931, tau_s: 5.3158, cluster: 0, n_samples: 67}
+  124: {shift: 0.3006, tau_s: 7.9129, cluster: 0, n_samples: 15}
   125: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   126: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  127: {shift: 0.5000, tau_s: 6.1759, cluster: 0, n_samples: 30}
-  128: {shift: 0.5000, tau_s: 7.2381, cluster: 0, n_samples: 11}
+  127: {shift: 0.3104, tau_s: 6.4580, cluster: 0, n_samples: 31}
+  128: {shift: 0.3022, tau_s: 7.2381, cluster: 0, n_samples: 11}
   129: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   130: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   131: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  132: {shift: 2.8474, tau_s: 2.4634, cluster: 2, n_samples: 32}
-  133: {shift: 3.0000, tau_s: 2.0379, cluster: 2, n_samples: 54}
+  132: {shift: 2.6715, tau_s: 2.0643, cluster: 2, n_samples: 32}
+  133: {shift: 2.6696, tau_s: 2.0662, cluster: 2, n_samples: 46}
   134: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   135: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  136: {shift: 0.5000, tau_s: 5.0145, cluster: 0, n_samples: 40}
-  137: {shift: 0.5000, tau_s: 5.3788, cluster: 0, n_samples: 43}
+  136: {shift: 0.401, tau_s: 5.2702, cluster: 0, n_samples: 44}
+  137: {shift: 0.4883, tau_s: 4.9007, cluster: 0, n_samples: 39}
   138: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   139: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  140: {shift: 0.5000, tau_s: 4.9338, cluster: 0, n_samples: 19}
-  141: {shift: 0.5000, tau_s: 4.9651, cluster: 0, n_samples: 19}
-  142: {shift: 0.9541, tau_s: 4.3567, cluster: 1, n_samples: 113}
-  143: {shift: 1.0883, tau_s: 4.2226, cluster: 1, n_samples: 31}
-  144: {shift: 0.5000, tau_s: 5.8546, cluster: 0, n_samples: 30}
+  140: {shift: 0.4786, tau_s: 4.9338, cluster: 0, n_samples: 19}
+  141: {shift: 0.4698, tau_s: 4.9651, cluster: 0, n_samples: 19}
+  142: {shift: 0.6294, tau_s: 4.5106, cluster: 1, n_samples: 136}
+  143: {shift: 0.5708, tau_s: 4.6574, cluster: 1, n_samples: 31}
+  144: {shift: 0.334, tau_s: 5.8546, cluster: 0, n_samples: 30}
   145: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   146: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   147: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  148: {shift: 0.5000, tau_s: 4.8575, cluster: 0, n_samples: 31}
+  148: {shift: 0.5015, tau_s: 4.8575, cluster: 1, n_samples: 31}
   149: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  150: {shift: 0.6654, tau_s: 4.6455, cluster: 1, n_samples: 38}
+  150: {shift: 0.5545, tau_s: 4.7011, cluster: 1, n_samples: 37}
   151: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  152: {shift: 0.6537, tau_s: 4.6571, cluster: 1, n_samples: 107}
-  153: {shift: 1.1353, tau_s: 4.1755, cluster: 1, n_samples: 37}
-  154: {shift: 3.0000, tau_s: 1.7823, cluster: 2, n_samples: 17}
+  152: {shift: 0.6914, tau_s: 4.3668, cluster: 1, n_samples: 94}
+  153: {shift: 0.8788, tau_s: 3.9414, cluster: 1, n_samples: 37}
+  154: {shift: 2.9535, tau_s: 1.7823, cluster: 2, n_samples: 17}
   155: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   156: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   157: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  158: {shift: 0.5000, tau_s: 5.8549, cluster: 0, n_samples: 26}
-  159: {shift: 0.5000, tau_s: 5.8793, cluster: 0, n_samples: 26}
-  160: {shift: 0.5000, tau_s: 8.1364, cluster: 0, n_samples: 30}
+  158: {shift: 0.334, tau_s: 5.8549, cluster: 0, n_samples: 26}
+  159: {shift: 0.3324, tau_s: 5.8793, cluster: 0, n_samples: 26}
+  160: {shift: 0.3003, tau_s: 8.2542, cluster: 0, n_samples: 30}
   161: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  162: {shift: 0.5000, tau_s: 12.2001, cluster: 0, n_samples: 13}
+  162: {shift: 0.3, tau_s: 12.2001, cluster: 0, n_samples: 13}
   163: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  164: {shift: 0.9299, tau_s: 4.3809, cluster: 1, n_samples: 31}
-  165: {shift: 0.9210, tau_s: 4.3898, cluster: 1, n_samples: 125}
-  166: {shift: 1.4542, tau_s: 3.8566, cluster: 2, n_samples: 30}
+  164: {shift: 0.5875, tau_s: 4.6139, cluster: 1, n_samples: 30}
+  165: {shift: 0.6812, tau_s: 4.3898, cluster: 1, n_samples: 125}
+  166: {shift: 1.3433, tau_s: 3.3925, cluster: 2, n_samples: 30}
   167: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  168: {shift: 0.7348, tau_s: 4.5761, cluster: 1, n_samples: 30}
+  168: {shift: 0.5943, tau_s: 4.5967, cluster: 1, n_samples: 31}
   169: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  170: {shift: 0.5000, tau_s: 6.7488, cluster: 0, n_samples: 30}
+  170: {shift: 0.3085, tau_s: 6.5647, cluster: 0, n_samples: 32}
   171: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  172: {shift: 0.5000, tau_s: 5.0831, cluster: 0, n_samples: 32}
-  173: {shift: 0.5000, tau_s: 4.9560, cluster: 0, n_samples: 58}
+  172: {shift: 0.4309, tau_s: 5.1212, cluster: 0, n_samples: 30}
+  173: {shift: 0.4413, tau_s: 5.0763, cluster: 0, n_samples: 59}
   174: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   175: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   176: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  177: {shift: 1.8616, tau_s: 3.4492, cluster: 2, n_samples: 20}
-  178: {shift: 0.5000, tau_s: 5.3977, cluster: 0, n_samples: 244}
-  179: {shift: 0.5000, tau_s: 5.3189, cluster: 0, n_samples: 40}
+  177: {shift: 1.2866, tau_s: 3.4492, cluster: 2, n_samples: 20}
+  178: {shift: 0.3803, tau_s: 5.3977, cluster: 0, n_samples: 244}
+  179: {shift: 0.3388, tau_s: 5.7864, cluster: 0, n_samples: 34}
   180: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   181: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  182: {shift: 0.5000, tau_s: 7.8988, cluster: 0, n_samples: 15}
+  182: {shift: 0.3006, tau_s: 7.8988, cluster: 0, n_samples: 15}
   183: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  184: {shift: 0.5000, tau_s: 5.5721, cluster: 0, n_samples: 97}
-  185: {shift: 0.5000, tau_s: 5.5633, cluster: 0, n_samples: 34}
-  186: {shift: 0.5000, tau_s: 8.1732, cluster: 0, n_samples: 18}
+  184: {shift: 0.3547, tau_s: 5.6043, cluster: 0, n_samples: 102}
+  185: {shift: 0.3365, tau_s: 5.8180, cluster: 0, n_samples: 36}
+  186: {shift: 0.3003, tau_s: 8.1732, cluster: 0, n_samples: 18}
   187: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  188: {shift: 3.0000, tau_s: 2.2894, cluster: 2, n_samples: 30}
+  188: {shift: 2.4464, tau_s: 2.2894, cluster: 2, n_samples: 30}
   189: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  190: {shift: 0.5000, tau_s: 5.0919, cluster: 0, n_samples: 31}
+  190: {shift: 0.6383, tau_s: 4.4893, cluster: 1, n_samples: 31}
   191: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  192: {shift: 0.5000, tau_s: 7.6019, cluster: 0, n_samples: 36}
-  193: {shift: 0.5000, tau_s: 7.6623, cluster: 0, n_samples: 48}
+  192: {shift: 0.3008, tau_s: 7.7209, cluster: 0, n_samples: 35}
+  193: {shift: 0.3009, tau_s: 7.6623, cluster: 0, n_samples: 48}
   194: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  195: {shift: 0.5000, tau_s: 5.2673, cluster: 0, n_samples: 12}
-  196: {shift: 0.5000, tau_s: 7.5143, cluster: 0, n_samples: 27}
+  195: {shift: 0.4015, tau_s: 5.2673, cluster: 0, n_samples: 12}
+  196: {shift: 0.3013, tau_s: 7.5143, cluster: 0, n_samples: 27}
   197: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  198: {shift: 0.5000, tau_s: 4.9859, cluster: 0, n_samples: 14}
+  198: {shift: 0.4642, tau_s: 4.9859, cluster: 0, n_samples: 14}
   199: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  200: {shift: 0.5000, tau_s: 6.1102, cluster: 0, n_samples: 31}
-  201: {shift: 0.5000, tau_s: 5.4822, cluster: 0, n_samples: 98}
-  202: {shift: 0.5000, tau_s: 4.9958, cluster: 0, n_samples: 38}
-  203: {shift: 0.5000, tau_s: 4.8201, cluster: 0, n_samples: 130}
+  200: {shift: 0.3717, tau_s: 5.4592, cluster: 0, n_samples: 30}
+  201: {shift: 0.3687, tau_s: 5.4822, cluster: 0, n_samples: 98}
+  202: {shift: 0.3824, tau_s: 5.3833, cluster: 0, n_samples: 43}
+  203: {shift: 0.6615, tau_s: 4.4350, cluster: 1, n_samples: 107}
   204: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   205: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  206: {shift: 0.5000, tau_s: 5.2049, cluster: 0, n_samples: 50}
-  207: {shift: 0.5000, tau_s: 5.0859, cluster: 0, n_samples: 34}
+  206: {shift: 0.4287, tau_s: 5.1311, cluster: 0, n_samples: 47}
+  207: {shift: 0.3846, tau_s: 5.3685, cluster: 0, n_samples: 32}
   208: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   209: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   210: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  211: {shift: 0.5000, tau_s: 5.7111, cluster: 0, n_samples: 14}
-  212: {shift: 1.5980, tau_s: 3.7128, cluster: 2, n_samples: 32}
-  213: {shift: 2.3012, tau_s: 3.0096, cluster: 2, n_samples: 65}
+  211: {shift: 0.3447, tau_s: 5.7111, cluster: 0, n_samples: 14}
+  212: {shift: 2.6172, tau_s: 2.1186, cluster: 2, n_samples: 30}
+  213: {shift: 1.8827, tau_s: 2.8531, cluster: 2, n_samples: 74}
   214: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  215: {shift: 0.5000, tau_s: 5.5042, cluster: 0, n_samples: 79}
+  215: {shift: 0.4006, tau_s: 5.2723, cluster: 0, n_samples: 80}
   216: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   217: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   218: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   219: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  220: {shift: 0.5000, tau_s: 7.2266, cluster: 0, n_samples: 19}
+  220: {shift: 0.3023, tau_s: 7.2266, cluster: 0, n_samples: 19}
   221: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   222: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   223: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
@@ -246,25 +246,25 @@ relations:
   227: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   228: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   229: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  230: {shift: 0.5000, tau_s: 6.8689, cluster: 0, n_samples: 30}
+  230: {shift: 0.3035, tau_s: 7.0109, cluster: 0, n_samples: 30}
   231: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  232: {shift: 0.5000, tau_s: 4.9372, cluster: 0, n_samples: 31}
-  233: {shift: 0.5000, tau_s: 4.8806, cluster: 0, n_samples: 47}
+  232: {shift: 0.4263, tau_s: 5.1423, cluster: 0, n_samples: 32}
+  233: {shift: 0.4693, tau_s: 4.9669, cluster: 0, n_samples: 47}
   234: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   235: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   236: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   237: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   238: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   239: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  240: {shift: 0.5000, tau_s: 6.5899, cluster: 0, n_samples: 30}
+  240: {shift: 0.3085, tau_s: 6.5648, cluster: 0, n_samples: 30}
   241: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   242: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  243: {shift: 0.5000, tau_s: 5.0442, cluster: 0, n_samples: 29}
-  244: {shift: 2.4467, tau_s: 2.8642, cluster: 2, n_samples: 40}
-  245: {shift: 2.4954, tau_s: 2.8154, cluster: 2, n_samples: 33}
+  243: {shift: 0.4491, tau_s: 5.0442, cluster: 0, n_samples: 29}
+  244: {shift: 1.9881, tau_s: 2.7477, cluster: 2, n_samples: 41}
+  245: {shift: 1.4198, tau_s: 3.3160, cluster: 2, n_samples: 34}
   246: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   247: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  248: {shift: 0.5000, tau_s: 5.6193, cluster: 0, n_samples: 31}
+  248: {shift: 0.3777, tau_s: 5.4156, cluster: 0, n_samples: 33}
   249: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   250: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   251: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
@@ -277,22 +277,22 @@ relations:
   258: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   259: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   260: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  261: {shift: 0.5000, tau_s: 5.8630, cluster: 0, n_samples: 29}
+  261: {shift: 0.3335, tau_s: 5.8630, cluster: 0, n_samples: 29}
   262: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  263: {shift: 0.5000, tau_s: 5.0466, cluster: 0, n_samples: 32}
+  263: {shift: 0.4485, tau_s: 5.0466, cluster: 0, n_samples: 32}
   264: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   265: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   266: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   267: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  268: {shift: 0.5000, tau_s: 5.4003, cluster: 0, n_samples: 30}
+  268: {shift: 0.3799, tau_s: 5.4003, cluster: 0, n_samples: 30}
   269: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   270: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   271: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  272: {shift: 1.4846, tau_s: 3.8262, cluster: 2, n_samples: 30}
+  272: {shift: 0.758, tau_s: 4.2180, cluster: 1, n_samples: 30}
   273: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  274: {shift: 0.5000, tau_s: 6.7572, cluster: 0, n_samples: 108}
-  275: {shift: 0.5000, tau_s: 6.7390, cluster: 0, n_samples: 65}
-  276: {shift: 0.5000, tau_s: 6.1300, cluster: 0, n_samples: 20}
+  274: {shift: 0.3058, tau_s: 6.7572, cluster: 0, n_samples: 108}
+  275: {shift: 0.3044, tau_s: 6.8903, cluster: 0, n_samples: 61}
+  276: {shift: 0.3199, tau_s: 6.1300, cluster: 0, n_samples: 20}
   277: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   278: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   279: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
@@ -303,64 +303,64 @@ relations:
   284: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   285: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   286: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  287: {shift: 0.5000, tau_s: 5.1354, cluster: 0, n_samples: 40}
+  287: {shift: 0.4278, tau_s: 5.1354, cluster: 0, n_samples: 40}
   288: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   289: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   290: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   291: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  292: {shift: 0.5000, tau_s: 12.1699, cluster: 0, n_samples: 13}
+  292: {shift: 0.3, tau_s: 12.1699, cluster: 0, n_samples: 13}
   293: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   294: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   295: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  296: {shift: 0.5000, tau_s: 6.7714, cluster: 0, n_samples: 52}
-  297: {shift: 0.5000, tau_s: 6.7809, cluster: 0, n_samples: 57}
+  296: {shift: 0.3056, tau_s: 6.7690, cluster: 0, n_samples: 54}
+  297: {shift: 0.3055, tau_s: 6.7809, cluster: 0, n_samples: 57}
   298: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   299: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   300: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   301: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   302: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  303: {shift: 0.5000, tau_s: 6.3102, cluster: 0, n_samples: 14}
+  303: {shift: 0.314, tau_s: 6.3102, cluster: 0, n_samples: 14}
   304: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   305: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   306: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   307: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   308: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  309: {shift: 0.5000, tau_s: 6.1148, cluster: 0, n_samples: 129}
-  310: {shift: 1.1534, tau_s: 4.1574, cluster: 1, n_samples: 14}
-  311: {shift: 1.1631, tau_s: 4.1478, cluster: 1, n_samples: 14}
-  312: {shift: 0.5000, tau_s: 7.1137, cluster: 0, n_samples: 22}
-  313: {shift: 0.5000, tau_s: 7.1147, cluster: 0, n_samples: 22}
+  309: {shift: 0.3205, tau_s: 6.1148, cluster: 0, n_samples: 129}
+  310: {shift: 0.7852, tau_s: 4.1574, cluster: 1, n_samples: 14}
+  311: {shift: 0.7895, tau_s: 4.1478, cluster: 1, n_samples: 14}
+  312: {shift: 0.3028, tau_s: 7.1137, cluster: 0, n_samples: 22}
+  313: {shift: 0.3028, tau_s: 7.1147, cluster: 0, n_samples: 22}
   314: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  315: {shift: 0.5000, tau_s: 5.8739, cluster: 0, n_samples: 23}
-  316: {shift: 0.5000, tau_s: 5.0582, cluster: 0, n_samples: 27}
+  315: {shift: 0.3328, tau_s: 5.8739, cluster: 0, n_samples: 23}
+  316: {shift: 0.4456, tau_s: 5.0582, cluster: 0, n_samples: 27}
   317: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   318: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  319: {shift: 3.0000, tau_s: 2.1829, cluster: 2, n_samples: 21}
+  319: {shift: 2.5529, tau_s: 2.1829, cluster: 2, n_samples: 21}
   320: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  321: {shift: 1.5717, tau_s: 3.7391, cluster: 2, n_samples: 23}
+  321: {shift: 0.9967, tau_s: 3.7391, cluster: 1, n_samples: 23}
   322: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  323: {shift: 0.7128, tau_s: 4.5981, cluster: 1, n_samples: 30}
+  323: {shift: 0.6674, tau_s: 4.4215, cluster: 1, n_samples: 30}
   324: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   325: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   326: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  327: {shift: 0.7931, tau_s: 4.5177, cluster: 1, n_samples: 32}
+  327: {shift: 0.6264, tau_s: 4.5177, cluster: 1, n_samples: 32}
   328: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   329: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   330: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   331: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   332: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   333: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  334: {shift: 0.5000, tau_s: 7.7893, cluster: 0, n_samples: 15}
+  334: {shift: 0.3007, tau_s: 7.7893, cluster: 0, n_samples: 15}
   335: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  336: {shift: 0.5000, tau_s: 7.7360, cluster: 0, n_samples: 15}
+  336: {shift: 0.3008, tau_s: 7.7360, cluster: 0, n_samples: 15}
   337: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   338: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   339: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   340: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   341: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  342: {shift: 0.5000, tau_s: 7.7932, cluster: 0, n_samples: 12}
+  342: {shift: 0.3007, tau_s: 7.7932, cluster: 0, n_samples: 12}
   343: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  344: {shift: 0.5000, tau_s: 7.6091, cluster: 0, n_samples: 30}
+  344: {shift: 0.3015, tau_s: 7.4483, cluster: 0, n_samples: 31}
   345: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   346: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   347: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
@@ -381,13 +381,13 @@ relations:
   362: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   363: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   364: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  365: {shift: 0.5000, tau_s: 8.7873, cluster: 0, n_samples: 13}
+  365: {shift: 0.3001, tau_s: 8.7873, cluster: 0, n_samples: 13}
   366: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   367: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  368: {shift: 0.5000, tau_s: 5.1285, cluster: 0, n_samples: 14}
+  368: {shift: 0.4293, tau_s: 5.1285, cluster: 0, n_samples: 14}
   369: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   370: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  371: {shift: 0.5000, tau_s: 7.7824, cluster: 0, n_samples: 22}
+  371: {shift: 0.3007, tau_s: 7.7824, cluster: 0, n_samples: 22}
   372: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   373: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   374: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
@@ -415,14 +415,14 @@ relations:
   396: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   397: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   398: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  399: {shift: 3.0000, tau_s: 2.1557, cluster: 2, n_samples: 13}
+  399: {shift: 2.5801, tau_s: 2.1557, cluster: 2, n_samples: 13}
   400: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   401: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   402: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   403: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  404: {shift: 1.4269, tau_s: 3.8839, cluster: 2, n_samples: 15}
-  405: {shift: 1.4086, tau_s: 3.9022, cluster: 2, n_samples: 15}
-  406: {shift: 2.1313, tau_s: 3.1796, cluster: 2, n_samples: 16}
+  404: {shift: 0.9021, tau_s: 3.8839, cluster: 1, n_samples: 15}
+  405: {shift: 0.8948, tau_s: 3.9022, cluster: 1, n_samples: 15}
+  406: {shift: 1.5563, tau_s: 3.1796, cluster: 2, n_samples: 16}
   407: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   408: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   409: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
@@ -431,7 +431,7 @@ relations:
   412: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   413: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   414: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  415: {shift: 2.1130, tau_s: 3.1978, cluster: 2, n_samples: 20}
+  415: {shift: 1.538, tau_s: 3.1978, cluster: 2, n_samples: 20}
   416: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   417: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   418: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
@@ -445,18 +445,18 @@ relations:
   426: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   427: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   428: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  429: {shift: 0.5042, tau_s: 4.8066, cluster: 0, n_samples: 21}
+  429: {shift: 0.5178, tau_s: 4.8066, cluster: 1, n_samples: 21}
   430: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   431: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   432: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   433: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  434: {shift: 0.5000, tau_s: 7.6102, cluster: 0, n_samples: 10}
+  434: {shift: 0.3011, tau_s: 7.6102, cluster: 0, n_samples: 10}
   435: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  436: {shift: 0.9400, tau_s: 4.3708, cluster: 1, n_samples: 17}
-  437: {shift: 0.9569, tau_s: 4.3539, cluster: 1, n_samples: 17}
+  436: {shift: 0.6896, tau_s: 4.3708, cluster: 1, n_samples: 17}
+  437: {shift: 0.6971, tau_s: 4.3539, cluster: 1, n_samples: 17}
   438: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   439: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  440: {shift: 0.5000, tau_s: 7.2032, cluster: 0, n_samples: 16}
+  440: {shift: 0.3024, tau_s: 7.2032, cluster: 0, n_samples: 16}
   441: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   442: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   443: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
@@ -464,25 +464,25 @@ relations:
   445: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   446: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   447: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  448: {shift: 2.7244, tau_s: 2.5864, cluster: 2, n_samples: 21}
+  448: {shift: 2.1494, tau_s: 2.5864, cluster: 2, n_samples: 21}
   449: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   450: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   451: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   452: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   453: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  454: {shift: 0.5000, tau_s: 5.5857, cluster: 0, n_samples: 19}
-  455: {shift: 0.5000, tau_s: 5.6140, cluster: 0, n_samples: 19}
+  454: {shift: 0.3567, tau_s: 5.5857, cluster: 0, n_samples: 19}
+  455: {shift: 0.3538, tau_s: 5.6140, cluster: 0, n_samples: 19}
   456: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   457: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  458: {shift: 2.1976, tau_s: 3.1132, cluster: 2, n_samples: 19}
+  458: {shift: 1.6226, tau_s: 3.1132, cluster: 2, n_samples: 19}
   459: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  460: {shift: 0.5000, tau_s: 6.3437, cluster: 0, n_samples: 13}
+  460: {shift: 0.3131, tau_s: 6.3437, cluster: 0, n_samples: 13}
   461: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   462: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   463: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  464: {shift: 0.5000, tau_s: 6.0452, cluster: 0, n_samples: 15}
+  464: {shift: 0.3235, tau_s: 6.0452, cluster: 0, n_samples: 15}
   465: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
-  466: {shift: 0.5000, tau_s: 6.4844, cluster: 0, n_samples: 11}
+  466: {shift: 0.3099, tau_s: 6.4844, cluster: 0, n_samples: 11}
   467: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   468: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
   469: {shift: 0.5, tau_s: null, cluster: 1, n_samples: 0}
