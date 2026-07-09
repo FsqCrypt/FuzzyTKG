@@ -438,3 +438,266 @@ feat/freq-based-shift           ← 频率法 (无效)
 2. **pni 专用校准**：为 2p path score 单独统计 shift 参数
 3. **min_shift 的跨数据集泛化**：验证 +0.5 是否是普遍最优值
 4. **探索非零 mu_B**：用小量 Boundary 分量平滑 Strong/Weak 过渡
+
+---
+
+# Session 3 — 2026-07-09：pni 修复、多分支探索与最终方案收敛
+
+## 一、pni 下降根因分析
+
+### 1.1 问题定位
+
+Session 2 的 Bounded Score-Shift 在 2in/3in/pin 上获得正向提升，但 pni 下降 4.3%。需要定位根因。
+
+### 1.2 查询结构对比
+
+逐一检查 4 个 negation query 的 negated branch 来源：
+
+| Query | Negated 分支 | 分数来源 | 分数类型 |
+|---|---|---|---|
+| 2in | `scores_2 = query_1p(queries[:, 2:4])` | 单跳 1p | 1p raw |
+| 3in | `scores_3 = query_1p(queries[:, 4:6])` | 单跳 1p | 1p raw |
+| pin | `scores_2 = query_1p(queries[:, 3:5])` | 单跳 1p | 1p raw |
+| **pni** | `scores_1 = query_2p(queries[:, 0:3])` | **双跳 2p path** | **2p 缩放后** |
+
+结论：**pni 是唯一 negate 2p path 的 query**。其他三个都 negate 1p 查询。
+
+### 1.3 pni 中的特殊处理
+
+pni 代码中存在 `M2/M1` 缩放：
+
+```python
+scores_1 = query_2p(queries[:, 0:3])   # 2p path
+scores_2 = query_1p(queries[:, 4:6])   # 1p positive
+M1 = torch.max(scores_1); M2 = torch.max(scores_2)
+scores_1 = scores_1 * M2 / M1           # 缩放到 1p 量级
+```
+
+缩放将 2p 最大值对齐到 1p 最大值，但**分布形状**不同：2p 经过 product t-norm + max-k 池化后，分数更集中在 M2 附近。同样 score=5.5，在 1p 中"中等偏低"，在缩放后 2p 中"普遍水平"。
+
+### 1.4 为什么 shift=+0.5 对 pni 有害
+
+min_shift=+0.5 压低 effective_score。对 1p 来说 5.5→5.0 让 membership 从 ~0.15 降到 ~0.05，恰到好处。但对缩放后 2p，同样的压低可能让分数掉到 threshd=4.7 以下 → membership=0 → r_1=1.0 → **完全不 negate** → 应被 negate 的实体存活 → MRR 下降。
+
+**根因总结**：1p 统计的 shift 不适用于 2p 分数分布。pni 的 negation 本来就因 B-spline 阈值过高而偏弱，进一步弱化雪上加霜。
+
+
+## 二、pni 修复：`negation_path` call_site_type
+
+### 2.1 方案设计
+
+新增 call_site_type `'negation_path'`，与 `'negation_raw'` 的区别：
+
+| call_site_type | 适用场景 | shift 行为 |
+|---|---|---|
+| `negation_raw` | 1p negated branch (2in, 3in, pin) | 施加 per-relation shift |
+| `negation_path` | 2p/3p negated branch (pni) | **不施加 shift**（保留原始 B-spline 行为） |
+| `combined` | intersection/union defuzzification | 不施加 shift |
+
+### 2.2 代码修改
+
+**`src/rel_membership.py`** `cal_membership3` 方法：
+- 新增 `elif call_site_type == 'negation_path': shifted_scores = scores` 分支
+
+**`src/discrete_cqd.py`** `query_pni`：line 684
+- `'negation_raw'` → `'negation_path'`
+
+**`src/discrete_qto.py`** `query_pni`：line 498
+- `'negation_raw'` → `'negation_path'`
+
+**2in/3in/pin 保持不变**，继续使用 `'negation_raw'` + shift。
+
+### 2.3 验证结果
+
+| Query | Baseline | 修复后 | Δ |
+|---|---|---|---|
+| 2in | 0.1215 | 0.1227 | +1.0% ✓ |
+| 3in | 0.1415 | 0.1542 | +9.0% ✓ |
+| pin | 0.0789 | 0.0794 | +0.6% ✓ |
+| pni | 0.0865 | 0.0865 | 0.0% ✓（回到 baseline） |
+
+**分支**：`feat/fix-pni-path`
+
+
+## 三、尝试 1：Per-Relation Min_Shift
+
+### 3.1 动机
+
+Session 2 的 Bounded Score-Shift 使用统一的 `min_shift=0.5` 作为 floor。这是从全局 grid search 得到的单一最优值。但原始创新点要求**每个 relation 有自己的参数**。
+
+### 3.2 方法
+
+为每个 relation 计算独立的 `min_shift_r`，基于 tau_s_r（pos 20th percentile）：
+
+```
+base_shift_r = global_tau_s - tau_s_r
+min_shift_r = 0.3 + 0.9 * sigmoid((base_shift_r - 0.5) / 0.5)
+final_shift_r = max(min_shift_r, base_shift_r)
+```
+
+效果：
+- Easy rel (tau_s 高, base_shift < 0)：min_shift_r ≈ 0.3（小幅度弱化）
+- Medium rel (base_shift ≈ 0)：min_shift_r ≈ 0.5（中等）
+- Hard rel (tau_s 低, base_shift > 0)：min_shift_r ≈ 1.0-1.2（大幅度弱化）
+
+**分支**：`feat/per-rel-min-shift`
+
+### 3.3 结果
+
+| Query | Baseline | unified 0.5 | per-rel min_shift |
+|---|---|---|---|
+| 2in | 0.1215 | 0.1227 (+1.0%) | **0.1231 (+1.3%)** |
+| 3in | 0.1415 | **0.1542 (+9.0%)** | 0.1536 (+8.5%) |
+| pin | 0.0789 | **0.0794 (+0.6%)** | 0.0791 (+0.3%) |
+
+### 3.4 反思
+
+per-rel min_shift 在 2in 上优于 unified（+1.3% vs +1.0%），但 3in 和 pin 略低于 unified。差异化 floor 提供了一定的关系感知能力，但牺牲了其他 query 的稳定性。**unified 0.5 仍是综合最优**。
+
+
+## 四、尝试 2：三值概念 Revival 分析
+
+### 4.1 动机
+
+检查是否可能让原始的 Strong/Boundary/Weak 三值公式（Session 1）真正生效。
+
+### 4.2 理论分析（未编码）
+
+尝试用三角形（而非 Gaussian）作为 Boundary 函数：
+```
+mu_B = max(0, 1 - 2*|s - center| / width)  # 紧支撑
+```
+
+以及用 B-spline 值分解：
+```
+mu_S = m
+mu_B = m * (1 - m)  # 抛物线，峰值 0.25
+mu_W = (1 - m)²
+neg_penalty = mu_S + 0.5*mu_B
+```
+
+### 4.3 推导发现
+
+计算 `penalty = m + 0.5*m(1-m) = 1.5m - 0.5m²`：
+- 对所有 m ∈ (0, 1)：penalty > m
+- 即：任何非零 mu_B 都会**增加**有效 penalty
+
+但 Session 2 的 grid search 证明 B-spline 已经**过度惩罚**——需要减小 penalty（shift > 0）。mu_B 只会进一步增加 penalty，方向完全相反。
+
+### 4.4 结论
+
+**三值公式与 B-spline 的校准存在根本冲突**。B-spline 已经 calibrated → 其 membership 值 `m` 是最优 penalty。任何分解 (`mu_S + coeff*mu_B`) 如果 sum > m，就会增加 penalty → 降低 MRR。要让三值生效，需要从零开始重新校准 mu_S（而非从 B-spline 派生），这正是 Session 1 失败的原因。
+
+**决策**：放弃三值 revival。不创建独立分支。
+
+
+## 五、尝试 3：Dual-Threshold Shift（tau_w + tau_s）
+
+### 5.1 动机
+
+原始创新点使用**两个**统计量（tau_w_r 和 tau_s_r），而当前 Bounded Score-Shift 只用了 tau_s_r（通过 shift）。能否利用 tau_w_r 提供额外信息？
+
+### 5.2 核心思路
+
+**pos-neg gap (`tau_s_r - tau_w_r`) 反映 relation 的可分离性**：
+- 大 gap：pos 和 neg 分数分布清晰分离 → 模型对该 relation 判断可靠
+- 小 gap：pos 和 neg 分数重叠 → 模型不可靠，应更保守
+
+将 gap 映射为 reliability ∈ [0, 1]，可靠度越高 shift 越小：
+
+```
+reliability_r = clamp((tau_s_r - tau_w_r) / MAX_GAP, 0, 1)
+shift_r = MIN_SHIFT + (1 - reliability_r) * MAX_ADD
+```
+
+### 5.3 代码修改
+
+**`src/rel_membership.py`**：
+- 无结构修改。参数生成逻辑独立于推理代码。
+
+**参数生成脚本**：
+- 新增 neg_scores_r 收集
+- 计算 `gap_r = tau_s_r - tau_w_r`
+- shift_r 公式使用 reliability 而非原始 base_shift
+
+### 5.4 第一版（无上限）
+
+MAX_ADD = 2.0，最大 shift 可达 2.5：
+
+| Query | Baseline | unified 0.5 | Dual uncapped |
+|---|---|---|---|
+| 2in | 0.1215 | 0.1227 | 0.1198 (-1.4%) |
+| 3in | 0.1415 | 0.1542 | **0.1555 (+9.9%)** |
+| pin | 0.0789 | 0.0794 | 0.0766 (-2.9%) |
+
+3in 达到 +9.9%（最高），但 2in 和 pin 掉到 baseline 以下。**过度弱化**（shift 最大 2.4）对 2in/pin 造成伤害。
+
+### 5.5 第二版（cap 1.5）
+
+限制 MAX_TOTAL = 1.5，MAX_ADD = 1.0：
+
+| Query | Baseline | unified 0.5 | Dual capped |
+|---|---|---|---|
+| 2in | 0.1215 | **0.1227 (+1.0%)** | 0.1220 (+0.4%) |
+| 3in | 0.1415 | 0.1542 (+9.0%) | **0.1563 (+10.5%)** |
+| pin | 0.0789 | **0.0794 (+0.6%)** | 0.0789 (0.0%) |
+| pni | 0.0865 | 0.0865 | 0.0865 |
+
+3in 达到 **+10.5%（新最高纪录）**，2in 仍为正 (+0.4%)，但 pin 回到 baseline（无提升）。
+
+### 5.6 反思
+
+1. **gap 作为 reliability 信号有效**：cap 版本在 3in 上超越 unified 方法 1.5 个百分点。gap 捕获了"模型对该 relation 的判断是否可靠"这一维度，这是单一的 tau_s 无法提供的。
+
+2. **cap 是关键**：无上限版本让不可靠 relation 的 shift > 2.0，对 2in/pin 造成净伤害。cap=1.5 在"保护 2in/pin"和"提升 3in"之间找到了更好的平衡。
+
+3. **pin 回到 baseline**：pin 是所有 negation query 中 baseline MRR 最低的 (0.0789)，且只有 5000 个查询。噪声敏感度较高。
+
+4. **双阈值 vs 单阈值的本质差异**：tau_s 反映"relation 需要多高分才算 Strong"（位置信息），gap 反映"relation 的 pos/neg 是否能被区分"（可分离性信息）。两者互补 —— 原始创新点提出双阈值是正确的方向，我们最终也回归到了这一点。
+
+**分支**：`feat/dual-threshold-shift`
+
+
+## 六、所有分支最终汇总
+
+### 6.1 结果对比
+
+| 分支 | 方法 | 2in Δ | 3in Δ | pin Δ | pni Δ | 原创贴近度 |
+|---|---|---|---|---|---|---|
+| feat/fix-pni-path | unified min_shift=0.5 | **+1.0%** | +9.0% | **+0.6%** | 0% | 远（仅 tau_s） |
+| feat/per-rel-min-shift | per-rel floor | +1.3% | +8.5% | +0.3% | 0% | 中 |
+| feat/dual-threshold-shift | gap reliability capped | +0.4% | **+10.5%** | 0% | 0% | **近（双统计量）** |
+| feat/freq-based-shift | 频率法 | -22.4% | — | — | — | 无关 |
+
+### 6.2 推荐
+
+- **综合最优**：`feat/fix-pni-path` — 所有 query 改善或持平，零退化
+- **3in 专项最优**：`feat/dual-threshold-shift` — 3in 达 +10.5%，但 pin 无提升
+- **最贴近原始创新**：`feat/dual-threshold-shift` — 使用双统计量（tau_w + tau_s）
+
+### 6.3 当前 Git 状态
+
+```
+master                          ← 原始基线
+feat/rel-aware-membership       ← Session 2 的 Bounded Score-Shift
+feat/freq-based-shift           ← 频率法（无效）
+feat/fix-pni-path               ← pni 修复 + unified 0.5 ★ 综合最优
+feat/per-rel-min-shift          ← per-relation min_shift floor
+feat/dual-threshold-shift       ← tau_w + tau_s gap + cap ★ 3in 最优
+feat/three-value-v2             ← 三值 revival（仅理论分析，无修改）
+```
+
+
+## 七、Session 3 经验总结
+
+1. **1p shift 不可直接用于 2p**：pni 修复的核心教训。不同深度的查询需要独立的 score 分布校准。`negation_path` 作为 escape hatch 是最小侵入的安全方案。
+
+2. **gap（tau_s - tau_w）是可分离性信号**：原始创新点使用双统计量是正确的。gap 提供了 tau_s 无法单独提供的"模型对该 relation 的判断质量"信息。cap 版本在 3in 上证明了 gap 的价值。
+
+3. **cap 约束是正则化手段**：无上限的 per-relation shift 会让个别 relation 的极端值伤害整体指标。cap 在"个性化"和"稳定性"之间提供了可调的平衡。
+
+4. **三值公式在 B-spline 框架下存在根本矛盾**：数学推导表明，任何非零 Boundary 分量都会增加 effective penalty，而 grid search 表明需要减小 penalty。两者不可调和。除非放弃 B-spline 从零校准，否则三值（mu_B > 0）无法生效。
+
+5. **"只弱化不强化"原则持续有效**：三个有效分支都遵循这一原则。任何负 shift（强化 negation）的尝试都导致了 MRR 下降。
+
+6. **Query type 之间存在 trade-off**：没有单一参数设置能让所有 query type 同时达到最优。unified 0.5 牺牲了 3in 的部分潜力换取 2in/pin 的稳定提升；capped dual 则相反。最终选择取决于应用场景的优先级。
