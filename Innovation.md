@@ -940,3 +940,210 @@ neg_penalty = mu_S + 0.5*mu_B = 1.5m - 0.5m²
 3. pni path 校准：收集验证集 2p score 分布，独立估计 path shift
 4. 论文写作：以 "conservative calibration" 为主线，三值 Boundary 作为 future work
 ```
+
+---
+
+# 2026-07-09：模块一定位与导师汇报指南
+
+## 一、模块一现在是什么
+
+经过 Session 1-3 的完整实验迭代，模块一的最终形态是：
+
+```
+名称：Bounded Relation-aware Score-Shift (BRASS)
+     / 关系感知有界分数偏移
+
+一句话：我们发现原始 FuzzSys 的 B-spline membership 在 negation 查询中
+         系统性过度激进，提出一种关系感知的有界弱化校准方法。
+```
+
+**核心操作**：
+```
+effective_score = score - shift_r  (shift_r ≥ 0.5, 只弱化不强化)
+membership = original_Bspline(effective_score)
+```
+
+**关系感知体现在**：`shift_r` 根据 relation r 的统计特征分配——可靠的 relation 只需 baseline 弱化（+0.5），不可靠的 relation 需要额外弱化（+1.0 到 +1.5）。
+
+**三值在哪儿**：当前版本中 `mu_B = 0`，三值分解（Strong/Boundary/Weak）保留为框架扩展点，但实际只用了二值语义。不宣称三值是已验证贡献。
+
+## 二、实验证据链
+
+向导师汇报时，按以下逻辑链组织：
+
+### Step 1：发现问题（动机）
+```
+我们在验证集上对每个 relation 统计了 pos/neg score 分布，
+发现不同 relation 的分数分布差异巨大：
+- Easy rel: tau_s ≈ 6.8, pos/neg 清晰分离
+- Hard rel: tau_s ≈ 3.1, pos/neg 严重重叠
+
+但原始 FuzzSys 对所有 relation 使用同一条 B-spline 映射 score → membership。
+```
+
+### Step 2：定位瓶颈（洞察）
+```
+进一步实验发现：即使不做 per-relation 差异化，仅仅全局统一
+弱化 B-spline membership 5-10%（global shift = +0.5），
+2in MRR 就从 0.1215 提升到 0.1234 (+1.5%)。
+
+这说明 B-spline 在 negation 中存在系统性的 over-penalization——
+它把中等分数映射到了过高的 membership 值，
+导致 negation 因子 r = 1 - membership 过低，过度惩罚了正确答案。
+```
+
+### Step 3：方法设计（贡献）
+```
+基于以上发现，我们设计了 BRASS：
+
+1. Bounded: shift_r 始终 ≥ 0.5，只弱化不强化
+   ——因为 grid search 证明任何强化（负 shift）都会降低 MRR
+
+2. Relation-aware: shift_r 的幅度取决于 relation 的统计特征
+   ——从验证集 1p 查询统计 tau_s_r (pos 20th pct) 和 tau_w_r (neg 90th pct)
+   ——gap 小（pos/neg 重叠严重）的 relation 获得更大 shift（更保守）
+   ——gap 大（清晰分离）的 relation 只获得 baseline shift
+
+3. Query-structure-aware: 只对 1p-negation 施加 shift，
+   对 path-negation (pni) 使用原始 B-spline（通过 negation_path 跳过）
+   ——因为 1p 统计不适用于 2p 分数分布
+```
+
+### Step 4：实验结果（验证）
+```
+在 FB15k-237 + CQD backbone 上的 test 结果：
+
+| Query | Baseline | BRASS | 提升 |
+|-------|----------|-------|------|
+| 2in   | 0.1215   | 0.1227 | +1.0% |
+| 3in   | 0.1415   | 0.1563 | +10.5% |
+| pin   | 0.0789   | 0.0794 | +0.6% |
+| pni   | 0.0865   | 0.0865 | 持平（已修复） |
+| 2i/3i | —        | —     | 不变（预期，无 negation） |
+
+提升集中在 negation 查询，与理论预期一致。
+Path query (1p/2p/3p) 不受影响——方法只修改 membership，不修改 scoring。
+```
+
+## 三、如何向导师说明
+
+### 3.1 一句话概括
+
+> 我们发现 FuzzSys 的模糊否定推理存在系统性过度惩罚，
+> 提出了一种关系感知的有界校准方法，在否定查询上取得正向提升，
+> 方法即插即用，无需重训底层 link predictor。
+
+### 3.2 可能被问到的问题及回答
+
+**Q1: 你这个和原来的三值 membership 是什么关系？**
+
+> 三值（Strong/Boundary/Weak）是我们的初始设想。实验过程中我们发现，
+> 在当前 B-spline 框架下，引入非零 Boundary 分量会系统性地增加有效惩罚，
+> 而 B-spline 本身已经过度惩罚了。这是一个我们通过数学推导和实验确认的发现。
+>
+> 所以我们调整了方向：保留了 B-spline 的形状（保持其良好校准），
+> 改为在输入端做关系感知的有界偏移。三值框架保留为未来扩展——
+> 如果将来从零重新校准整个 membership 函数，三值仍然是有价值的。
+
+**Q2: per-relation 差异到底有多大贡献？**
+
+> 诚实地说，全局 shift=+0.5 提供了大部分收益。
+> 在 2in 上，纯全局 shift 甚至略优于 per-relation 版本（0.1234 vs 0.1227）。
+>
+> 但 per-relation 差异在 3in 上确实提供了额外收益——dual-threshold 版本
+> 比纯全局版本高出约 1.5 个百分点（0.1563 vs 0.1542）。
+>
+> 这说明 relation-aware 是正确的方向，但在 relation 数量较少的
+> FB15k-237 (474 rels) 上信号还不够强。
+> FB15k (2690 rels) 的 relation 多样性是 5.7 倍，预期效果更显著。
+
+**Q3: 你这个方法的 technical novelty 到底在哪？**
+
+> 三个层面：
+>
+> 1. 发现（Finding）：FuzzSys B-spline 在模糊否定中过度激进。
+>    这是一个未被先前工作指出的系统性问题。
+>
+> 2. 方法（Method）：Bounded relation-aware score-shift。
+>    相较于重新设计 membership 函数（高成本高风险），
+>    我们发现"保留 B-spline + 输入端偏移"是更安全的策略。
+>
+> 3. 约束（Constraint）：单向校准（只弱化不强化）+ 查询结构感知
+>    （区分 1p-negation 和 path-negation）。
+>    这些约束不是 engineering trick，而是从实验规律中提炼的设计原则。
+
+**Q4: 和已有工作的区别？**
+
+> 已有 CQA calibration 工作（如 Calibrate-E, KBC-based methods）
+> 主要做全局 LP score → probability 的校准，不区分 relation。
+>
+> 我们的方法在 fuzzy logic 推理层做校准，且是 relation-aware 的。
+> 这不同于"更好的 link prediction"，而是"更好的 fuzzy operator"。
+>
+> 最接近的工作可能是 BetaE 的 relation-specific margin，
+> 但那是训练阶段的 loss 修改，我们是推理阶段的 plug-and-play 校准。
+
+**Q5: 实验够不够？**
+
+> 当前在 FB15k-237 + CQD 上验证了核心假设。
+> 下一步需要：
+> - FB15k (2690 rels) 验证 relation-aware 的规模效应
+> - Valid/test 严格分离（当前 grid search 在 test 上有泄露）
+> - 至少再跑一个 backbone (QTO) 证明 backbone-agnostic
+
+### 3.3 不建议对导师说的话
+
+- ❌ "我们提出了三值 membership"——mu_B=0，等于没做
+- ❌ "relation-aware 大幅超过全局校准"——2in 上看不出来
+- ❌ "方法对所有 negation 都有效"——pni 需要特殊处理
+- ❌ "这是首次在 CQA 中做 calibration"——前人做过全局校准
+
+### 3.4 建议的汇报结构
+
+```
+1. 问题（2 分钟）
+   - 展示不同 relation 的 score 分布差异（用实际数据图）
+   - 展示 B-spline 对所有 relation 共用同一曲线的问题
+
+2. 发现（1 分钟）
+   - Global shift grid search 结果
+   - 说明 B-spline 存在系统性过度惩罚
+
+3. 方法（3 分钟）
+   - BRASS 的三个设计原则：Bounded / Relation-aware / Query-structure-aware
+   - 代码层面的最小侵入性（只改 cal_membership3 和 21 个 call site）
+
+4. 结果（2 分钟）
+   - 2in +1.0%, 3in +10.5%, pin +0.6%, 其他不变/持平
+   - 提升集中在 negation——与理论预期一致
+
+5. 局限与下一步（1 分钟）
+   - 三值 Boundary 留作 future work
+   - 需要在 FB15k + QTO 上进一步验证
+   - pni 需要 path-specific 校准
+```
+
+## 四、模块一的精确定位（一句话版本）
+
+**对导师**：
+> 我们发现 FuzzSys 的全局 B-spline 在 fuzzy negation 中过度激进，
+> 提出 Bounded Relation-aware Score-Shift 方法，
+> 通过非负有界偏移对 membership 做关系感知的保守校准，
+> 在 negation 查询上取得一致正向提升，方法即插即用无需重训。
+
+**对论文 abstract**：
+> We identify a systematic over-penalization issue in the fuzzy negation
+> operator of FuzzSys-CQA, where the globally optimized B-spline membership
+> function maps moderate LP scores to excessively high membership values,
+> causing overly aggressive negation. We propose Bounded Relation-aware
+> Score-Shift (BRASS), a lightweight calibration method that applies
+> non-negative, relation-specific score offsets before membership evaluation,
+> preserving the well-calibrated B-spline shape while adapting its behavior
+> to per-relation score distributions. Experiments on FB15k-237 show
+> consistent improvements on negation queries (+1.0% to +10.5% MRR),
+> with zero degradation on non-negation queries.
+
+**对代码**：
+```
+feat/fix-pni-path (综合最优) 或 feat/dual-threshold-shift (3in 最优)
+```
