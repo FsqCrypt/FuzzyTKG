@@ -54,7 +54,8 @@ def cal_membership(scores):
     return m
 
 
-def cal_membership3(scores, rel_ids=None, call_site_type='combined'):
+def cal_membership3(scores, rel_ids=None, call_site_type='combined',
+                    query_type=None):
     """
     Three-value relation-aware membership function.
 
@@ -66,13 +67,11 @@ def cal_membership3(scores, rel_ids=None, call_site_type='combined'):
         scores: tensor of any shape -- LP scores
         rel_ids: tensor of relation IDs, optional
         call_site_type: 'negation_raw', 'combined', or 'union'
-
-    Returns:
-        (mu_S, mu_B, mu_W): three membership tensors, same shape as scores
+        query_type: '2in','3in','pin','pni' -- scales offset per query structure
     """
     if myglobal.FS_PARAMS.use_rel_memb and rel_ids is not None:
         return myglobal.FS_PARAMS.REL_MEMB.cal_membership3(
-            scores, rel_ids, call_site_type)
+            scores, rel_ids, call_site_type, query_type=query_type)
     else:
         # Fallback: original global two-value membership
         m = cal_membership(scores)
@@ -207,6 +206,14 @@ def query_2i(entity_embeddings: nn.Module,
     scores_1 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 0:2])
     scores_2 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 2:4])
 
+    # Branch-level per-relation shift
+    if myglobal.FS_PARAMS.use_rel_memb:
+        rel_memb = myglobal.FS_PARAMS.REL_MEMB
+        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])
+        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])
+        scores_1 = scores_1 - shift_1.unsqueeze(1)
+        scores_2 = scores_2 - shift_2.unsqueeze(1)
+
     M = torch.maximum(scores_1, scores_2)
     m = torch.minimum(scores_1, scores_2)
 
@@ -234,6 +241,16 @@ def query_3i(entity_embeddings: nn.Module,
     scores_1 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 0:2])
     scores_2 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 2:4])
     scores_3 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 4:6])
+
+    # Branch-level per-relation shift
+    if myglobal.FS_PARAMS.use_rel_memb:
+        rel_memb = myglobal.FS_PARAMS.REL_MEMB
+        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])
+        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])
+        shift_3 = rel_memb.get_shift_for_rel(queries[:, 5])
+        scores_1 = scores_1 - shift_1.unsqueeze(1)
+        scores_2 = scores_2 - shift_2.unsqueeze(1)
+        scores_3 = scores_3 - shift_3.unsqueeze(1)
 
     scores_tensor = torch.vstack([scores_1, scores_2, scores_3])
     sorted_scores = torch.sort(scores_tensor, dim=0, descending=True).values
@@ -294,6 +311,11 @@ def query_pi(entity_embeddings: nn.Module,
     M2 = torch.max(scores_2)
     scores_1 = scores_1 * M2/M1
 
+    # Branch-level per-relation shift for 1p branch only (skip path branch)
+    if myglobal.FS_PARAMS.use_rel_memb:
+        shift_2 = myglobal.FS_PARAMS.REL_MEMB.get_shift_for_rel(queries[:, 4])
+        scores_2 = scores_2 - shift_2.unsqueeze(1)
+
     M = torch.maximum(scores_1, scores_2)
     m = torch.minimum(scores_1, scores_2)
 
@@ -320,6 +342,14 @@ def query_2u_dnf(entity_embeddings: nn.Module,
 
     scores_1 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 0:2])
     scores_2 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 2:4])
+
+    # Branch-level per-relation shift
+    if myglobal.FS_PARAMS.use_rel_memb:
+        rel_memb = myglobal.FS_PARAMS.REL_MEMB
+        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])
+        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])
+        scores_1 = scores_1 - shift_1.unsqueeze(1)
+        scores_2 = scores_2 - shift_2.unsqueeze(1)
 
     MM = myglobal.FS_PARAMS.Max_score
     M = torch.maximum(scores_1, scores_2)
@@ -372,7 +402,7 @@ def query_2in(entity_embeddings: nn.Module,
     scores_2 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 2:4])
 
     # Three-value relation-aware negation
-    mu_S, mu_B, mu_W = cal_membership3(scores_2, queries[:, 3], 'negation_raw')
+    mu_S, mu_B, mu_W = cal_membership3(scores_2, queries[:, 3], 'negation_raw', query_type='2in')
     neg_penalty = 1.0 * mu_S + 0.5 * mu_B + 0.0 * mu_W
     r_2 = 1.0 - neg_penalty
 
@@ -407,7 +437,7 @@ def query_3in(entity_embeddings: nn.Module,
     scores_3 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 4:6])
 
     # Three-value relation-aware negation for third branch
-    mu_S, mu_B, mu_W = cal_membership3(scores_3, queries[:, 5], 'negation_raw')
+    mu_S, mu_B, mu_W = cal_membership3(scores_3, queries[:, 5], 'negation_raw', query_type='3in')
     neg_penalty = 1.0 * mu_S + 0.5 * mu_B + 0.0 * mu_W
     r_3 = 1.0 - neg_penalty
 
@@ -457,7 +487,7 @@ def query_pin(entity_embeddings: nn.Module,
     scores_2 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 3:5])
 
     # Three-value relation-aware negation
-    mu_S, mu_B, mu_W = cal_membership3(scores_2, queries[:, 4], 'negation_raw')
+    mu_S, mu_B, mu_W = cal_membership3(scores_2, queries[:, 4], 'negation_raw', query_type='pin')
     neg_penalty = 1.0 * mu_S + 0.5 * mu_B + 0.0 * mu_W
     r_2 = 1.0 - neg_penalty
 
@@ -495,7 +525,7 @@ def query_pni(entity_embeddings: nn.Module,
     scores_1 = scores_1 * M2/M1 
 
     # Three-value relation-aware negation for path branch
-    mu_S, mu_B, mu_W = cal_membership3(scores_1, queries[:, 1], 'negation_path')
+    mu_S, mu_B, mu_W = cal_membership3(scores_1, queries[:, 1], 'negation_path', query_type='pni')
     neg_penalty = 1.0 * mu_S + 0.5 * mu_B + 0.0 * mu_W
     r_1 = 1.0 - neg_penalty
 

@@ -32,39 +32,59 @@ import os
 import pickle
 import logging
 from collections import defaultdict
+from tqdm import tqdm
 
 import src.myglobal as myglobal
 
 
 class RelationMembership:
-    """Per-relation score-shift parameters for relation-aware membership."""
+    """Per-relation score-shift and three-value offset for relation-aware membership.
+
+    Two complementary mechanisms:
+      Shift  (BEFORE B-spline): effective_score = score - shift_r
+             Adjusts for per-relation score-scale differences using tau_s_r.
+      Offset (AFTER B-spline):  mu_B = min(offset_r, m), mu_S = m - mu_B
+             Fractional penalty: reduces effective penalty for unreliable relations
+             using gap_r = tau_s_r - tau_w_r (pos/neg separability).
+    """
 
     def __init__(self, nrelation, params_dict):
         self.nrelation = nrelation
 
-        # Global fallback (shift=0 means no adjustment)
+        # ---- Shift params (before B-spline) ----
         self.global_shift = 0.0
 
-        # Cluster fallbacks
         self.cluster_shifts = []
         for c in params_dict.get('clusters', []):
             self.cluster_shifts.append(float(c.get('shift', 0.0)))
 
-        # Per-relation shifts
         self.shifts = np.full(nrelation, np.nan, dtype=np.float32)
         self.cluster_id = np.full(nrelation, -1, dtype=np.int32)
+
+        # ---- Offset params (after B-spline, three-value) ----
+        self.global_offset = float(params_dict.get('global_offset', 0.0))
+
+        self.cluster_offsets = []
+        for c in params_dict.get('clusters', []):
+            self.cluster_offsets.append(float(c.get('offset', 0.0)))
+
+        self.offsets = np.full(nrelation, np.nan, dtype=np.float32)
 
         for rel_id_str, rparams in params_dict.get('relations', {}).items():
             rid = int(rel_id_str)
             if rid < nrelation:
                 if rparams.get('shift') is not None:
                     self.shifts[rid] = float(rparams['shift'])
+                if rparams.get('offset') is not None:
+                    self.offsets[rid] = float(rparams['offset'])
                 if rparams.get('cluster') is not None:
                     self.cluster_id[rid] = int(rparams['cluster'])
 
         # GPU tensors (lazy init)
         self._shifts_t = None
+        self._offsets_t = None
         self._cluster_shifts_t = None
+        self._cluster_offsets_t = None
         self._cluster_id_t = None
         self._device = None
 
@@ -73,9 +93,12 @@ class RelationMembership:
             return
         self._device = device
         self._shifts_t = torch.from_numpy(self.shifts).to(device)
+        self._offsets_t = torch.from_numpy(self.offsets).to(device)
         self._cluster_shifts_t = torch.tensor(self.cluster_shifts, device=device)
+        self._cluster_offsets_t = torch.tensor(self.cluster_offsets, device=device)
         self._cluster_id_t = torch.from_numpy(self.cluster_id).long().to(device)
         self._global_shift_t = torch.tensor(self.global_shift, device=device)
+        self._global_offset_t = torch.tensor(self.global_offset, device=device)
 
     def _get_shift_for_rel(self, rel_ids):
         """Return per-relation shift [B], with cluster/global fallback."""
@@ -100,12 +123,92 @@ class RelationMembership:
 
         return shift
 
-    def cal_membership3(self, scores, rel_ids, call_site_type='combined'):
+    def get_shift_for_rel(self, rel_ids):
+        """Public wrapper for per-relation shift lookup.
+
+        Returns shift [B] for each relation, with cluster/global fallback.
+        Used by query functions for branch-level score calibration before
+        fuzzy operators (max/min/product).
         """
-        Compute three-value membership with per-relation score shift.
+        return self._get_shift_for_rel(rel_ids)
+
+    def _get_offset_for_rel(self, rel_ids):
+        """Return per-relation offset [B], with cluster/global fallback.
+
+        Offset controls the fractional-penalty three-value decomposition:
+          mu_B = min(offset_r, m)   — uncertain portion, half-penalty
+          mu_S = m - mu_B           — confident portion, full penalty
+          penalty = m - 0.5*mu_B < m  (when offset_r > 0)
+
+        Fallback: per-relation → cluster → global (0 = two-value mode).
+        A cluster offset of 0 means "undefined for this cluster" and falls
+        through to global, preventing cluster defaults from blocking three-value.
+        """
+        device = rel_ids.device
+        self._ensure_tensors(device)
+
+        offset = self._offsets_t[rel_ids]  # [B]
+
+        # Fallback 1: cluster
+        nan_mask = torch.isnan(offset)
+        if nan_mask.any():
+            cid = self._cluster_id_t[rel_ids]
+            valid = (cid >= 0) & (cid < len(self.cluster_offsets))
+            fb_mask = nan_mask & valid
+            if fb_mask.any():
+                cluster_vals = self._cluster_offsets_t[cid[fb_mask]]
+                offset[fb_mask] = cluster_vals
+                # cluster offset=0 means undefined → fall through to global
+                zero_cluster = (cluster_vals == 0.0)
+                if zero_cluster.any():
+                    fb_indices = fb_mask.nonzero(as_tuple=True)[0]
+                    zi = fb_indices[zero_cluster]
+                    offset[zi] = float('nan')
+
+        # Fallback 2: global (default 0 = no three-value decomposition)
+        still_nan = torch.isnan(offset)
+        if still_nan.any():
+            offset[still_nan] = self._global_offset_t
+
+        return offset
+
+    # Per-query-type offset scaling factors.
+    # Same relation may need different offset strength depending on how
+    # many positive branches back up the negation in the query structure.
+    #  3in (2 pos + 1 neg): full offset → scale 1.0
+    #  2in (1 pos + 1 neg): reduced offset → scale 0.3
+    #  pin (path pos + 1 neg): minimal offset → scale 0.2
+    #  pni (negated path): no offset (uses negation_path, not reached)
+    QUERY_TYPE_SCALES = {
+        '3in': 1.0,
+        '2in': 0.2,
+        'pin': 0.1,
+        'pni': 0.0,
+        None: 1.0,   # backward compat when query_type not provided
+    }
+
+    # Context-dependent beta coefficient for three-value decomposition.
+    # Beta controls how strongly the uncertain portion (mu_B) is discounted
+    # from the confident portion (mu_S) in different call-site contexts.
+    #   beta = 1.0: no discount — mu_S = m           (original binary)
+    #   beta = 0.5: half discount — mu_S = m - 0.5*mu_B  (negation default)
+    #   beta = 0.0: full discount — mu_S = m - mu_B  (mu_B fully stripped)
+    CONTEXT_BETA = {
+        'negation_raw':   0.5,   # caller uses mu_S + 0.5*mu_B → penalty
+        'negation_path':  0.0,   # no three-value for path negation
+        'combined':       0.3,   # conservative discount for defuzz weights
+        'union':          0.4,   # moderate discount for union defuzz weights
+    }
+
+    def cal_membership3(self, scores, rel_ids, call_site_type='combined',
+                        query_type=None):
+        """
+        Compute three-value membership with per-relation score shift
+        and per-query-type offset scaling.
 
         For 'negation_raw': applies per-relation shift before evaluating
-        the original global membership, then decomposes into three values.
+        the original global membership, then decomposes into three values
+        with offset scaled by query_type factor.
 
         For 'combined'/'union': returns original membership without shift.
         """
@@ -126,10 +229,12 @@ class RelationMembership:
         if B_rel == 1 and B_score > 1:
             rel_ids = rel_ids.expand(B_score)
 
-        # For negation: apply per-relation score shift only for 1p scores.
-        # 'negation_raw' = 1p negated branch (2in, 3in, pin) — shift applies.
-        # 'negation_path' = 2p/3p negated branch (pni) — no shift;
-        #   path scores have different distributions, 1p-derived shifts don't apply.
+        # Apply per-relation score shift.
+        # 'negation_raw': full shift + three-value offset + query-type scaling.
+        #   The negated branch's raw 1p scores are shifted here.
+        # 'combined'/'union': NO shift — branch-level shift already applied
+        #   in the query function before score combination (max/min/product).
+        # 'negation_path': no shift — path scores have different distributions.
         if call_site_type == 'negation_raw':
             shift = self._get_shift_for_rel(rel_ids)
             shift = torch.clamp(shift, min=-3.0, max=3.0)
@@ -139,6 +244,7 @@ class RelationMembership:
         elif call_site_type == 'negation_path':
             shifted_scores = scores  # no shift for path-based negation
         else:
+            # combined / union: branch-level shift already applied
             shifted_scores = scores
 
         # Evaluate original global membership function on shifted scores
@@ -151,14 +257,53 @@ class RelationMembership:
         else:
             m = cal_mem_cqd(shifted_scores)
 
-        # Decompose into three values:
-        # mu_S = m (membership as "Strong" evidence)
-        # mu_B = 0 (no separate Boundary — handled by sigmoid ramp)
-        # mu_W = 1 - m (inverse as "Weak")
-        zero = torch.zeros_like(m)
-        mu_S = m
-        mu_B = zero
-        mu_W = 1.0 - m
+        # Three-value decomposition:
+        #   negation_raw:  fractional penalty via offset → true 3-value
+        #     mu_S = m - mu_B, mu_B = min(offset, m)
+        #     caller computes: penalty = 1.0*mu_S + 0.5*mu_B = m - 0.5*mu_B
+        #   combined/union: uncertainty-aware weight discount via context beta
+        #     mu_B_raw = min(offset*0.5, m), mu_S = m - (1-beta)*mu_B_raw
+        #     caller uses mu_S as defuzzification weight (mu_B informational)
+        #   negation_path: binary decomposition (mu_B=0)
+        beta = self.CONTEXT_BETA.get(call_site_type, 0.0)
+
+        if call_site_type == 'negation_raw':
+            # Fractional Penalty: reclassify up to offset_r of membership
+            # from Strong (full penalty) to Boundary (half penalty).
+            # penalty = mu_S + 0.5*mu_B = m - 0.5*mu_B < m  (when offset>0)
+            #
+            # Per-query-type scaling: same relation needs different offset
+            # strength depending on query structure (Module 2 entry point).
+            offset_r = self._get_offset_for_rel(rel_ids)
+            scale_q = self.QUERY_TYPE_SCALES.get(query_type, 1.0)
+            offset_r = offset_r * scale_q
+            offset_r = torch.clamp(offset_r, min=0.0, max=0.5)
+            if offset_r.dim() == 1 and m.dim() > 1:
+                offset_r = offset_r.unsqueeze(1)
+            mu_B = torch.minimum(offset_r, m)
+            mu_S = m - mu_B
+            mu_W = 1.0 - m
+        elif call_site_type in ('combined', 'union') and beta > 0:
+            # Uncertainty-aware weight discount: for unreliable relations,
+            # discount the membership used as defuzzification weight.
+            #   mu_S = m - (1-beta)*mu_B_raw  (beta=0.3 → discount 0.7*mu_B_raw)
+            # Smaller offset than negation (×0.5) — defuzz weights are more
+            # sensitive to membership changes than negation penalties.
+            offset_r = self._get_offset_for_rel(rel_ids)
+            offset_r = offset_r * 0.5  # reduced magnitude for defuzz context
+            offset_r = torch.clamp(offset_r, min=0.0, max=0.5)
+            if offset_r.dim() == 1 and m.dim() > 1:
+                offset_r = offset_r.unsqueeze(1)
+            mu_B_raw = torch.minimum(offset_r, m)
+            mu_S = m - (1.0 - beta) * mu_B_raw   # e.g. m - 0.7*mu_B_raw
+            mu_B = mu_B_raw                       # informational
+            mu_W = 1.0 - m
+        else:
+            # Binary decomposition (negation_path, or beta=0)
+            zero = torch.zeros_like(m)
+            mu_S = m
+            mu_B = zero
+            mu_W = 1.0 - m
 
         # Restore original shape
         if len(original_shape) == 1:
@@ -234,9 +379,15 @@ def compute_per_relation_stats(data_path, checkpoint_path, dataname,
         r = q[1][0] if isinstance(q[1], tuple) else q[1]
         rel_queries[r].append(q)
 
-    # Collect per-relation pos score statistics
+    # Collect per-relation pos and neg score statistics
     pos_scores_r = defaultdict(list)
+    neg_scores_r = defaultdict(list)
     MAX_PER_REL = 100  # max queries per relation
+
+    # Build global answer lookup for neg sampling
+    answer_sets = {}
+    for q, ans in valid_answers.items():
+        answer_sets[q] = set(ans) if not isinstance(ans, set) else ans
 
     with torch.no_grad():
         for r, r_queries in tqdm(rel_queries.items(), desc='Collecting scores'):
@@ -247,7 +398,7 @@ def compute_per_relation_stats(data_path, checkpoint_path, dataname,
             for q in r_queries:
                 h = q[0]
                 rid = q[1][0] if isinstance(q[1], tuple) else q[1]
-                answers = valid_answers.get(q, set())
+                answers = answer_sets.get(q, set())
 
                 query_t = torch.LongTensor([[h, rid]])
                 if cuda:
@@ -260,9 +411,21 @@ def compute_per_relation_stats(data_path, checkpoint_path, dataname,
                     scoring_function=lambda rel, lhs, rhs: model.score_o(lhs, rel, rhs)[0]
                 ).squeeze(0)
 
+                # Pos scores: answer entities
                 for ans in answers:
                     if ans < raw_scores.shape[0]:
                         pos_scores_r[r].append(raw_scores[ans].item())
+
+                # Neg scores: sample non-answer entities
+                answers_set = set(int(a) for a in answers if a < raw_scores.shape[0])
+                neg_pool = [i for i in range(raw_scores.shape[0])
+                            if i not in answers_set]
+                if len(neg_pool) > neg_sample_size:
+                    neg_samples = np.random.choice(neg_pool, neg_sample_size, replace=False)
+                else:
+                    neg_samples = neg_pool
+                for neg_e in neg_samples:
+                    neg_scores_r[r].append(raw_scores[int(neg_e)].item())
 
     # Compute global tau_s (20th percentile of all pos scores)
     all_pos = np.concatenate([np.array(v) for v in pos_scores_r.values() if len(v) > 0])
@@ -290,6 +453,43 @@ def compute_per_relation_stats(data_path, checkpoint_path, dataname,
                 'tau_s': None,
                 'n_samples': n_pos,
             }
+
+    # Compute per-relation tau_w (neg score 90th pct) and gap
+    all_neg = np.concatenate([np.array(v) for v in neg_scores_r.values() if len(v) > 0])
+    global_tau_w = float(np.percentile(all_neg, 90))
+    logging.info(f'Global tau_w (neg 90pct): {global_tau_w:.4f}')
+
+    gaps = []
+    for r in range(nrelation):
+        neg_list = neg_scores_r.get(r, [])
+        n_neg = len(neg_list)
+        if n_neg >= 10:
+            tau_w_r = float(np.percentile(neg_list, 90))
+            rel_params[r]['tau_w'] = round(tau_w_r, 4)
+            # gap = tau_s - tau_w: how well pos/neg scores separate
+            if rel_params[r]['tau_s'] is not None:
+                gap_r = max(rel_params[r]['tau_s'] - tau_w_r, 0.01)
+                rel_params[r]['gap'] = round(float(gap_r), 4)
+                gaps.append(gap_r)
+        else:
+            rel_params[r]['tau_w'] = None
+            rel_params[r]['gap'] = None
+
+    # Compute per-relation offset from gap (three-value Fractional Penalty)
+    if len(gaps) > 0:
+        gaps_arr = np.array(gaps)
+        GAP_REF = float(np.percentile(gaps_arr, 90))
+        OFFSET_MIN = 0.01
+        OFFSET_MAX = 0.08
+        for r in range(nrelation):
+            gap_r = rel_params[r].get('gap')
+            if gap_r is not None and GAP_REF > 0:
+                reliability = np.clip(gap_r / GAP_REF, 0, 1)
+                offset_r = OFFSET_MIN + (OFFSET_MAX - OFFSET_MIN) * (1 - reliability)
+                rel_params[r]['offset'] = round(float(offset_r), 4)
+            else:
+                rel_params[r]['offset'] = None
+        logging.info(f'GAP_REF={GAP_REF:.4f}, offsets: [{OFFSET_MIN}, {OFFSET_MAX}]')
 
     # Cluster relations
     clusters = []
@@ -342,22 +542,28 @@ def compute_per_relation_stats(data_path, checkpoint_path, dataname,
 
     with open(output_fn, 'w') as f:
         f.write(f'# Relation-aware membership params for {dataname} ({backbone_type})\n')
-        f.write(f'# Score-shift approach: effective_score = score - shift_r\n')
-        f.write(f'# Positive shift → relation is "easier" → scores need to be higher\n')
+        f.write(f'# Dual-layer: Score-Shift + Fractional Penalty Offset\n')
         f.write(f'# Generated from validation 1p queries\n\n')
         f.write(f'nrelation: {nrelation}\n')
-        f.write(f'global_tau_s: {global_tau_s:.4f}\n\n')
+        f.write(f'global_tau_s: {global_tau_s:.4f}\n')
+        f.write(f'global_tau_w: {global_tau_w:.4f}\n')
+        f.write(f'global_offset: 0.0\n\n')
         f.write(f'clusters:\n')
         for c in clusters:
             f.write(f'  - id: {c["id"]}\n')
             f.write(f'    shift: {c["shift"]}\n')
+            f.write(f'    offset: 0.0\n')
             f.write(f'    n_relations: {c["n_relations"]}\n')
         f.write(f'\nrelations:\n')
         for r in range(nrelation):
             rp = rel_params[r]
             s_s = 'null' if rp['shift'] is None else rp['shift']
             ts_s = 'null' if rp['tau_s'] is None else rp['tau_s']
-            f.write(f'  {r}: {{shift: {s_s}, tau_s: {ts_s}, '
+            tw_s = 'null' if rp.get('tau_w') is None else rp['tau_w']
+            gap_s = 'null' if rp.get('gap') is None else rp['gap']
+            off_s = 'null' if rp.get('offset') is None else rp['offset']
+            f.write(f'  {r}: {{shift: {s_s}, tau_s: {ts_s}, tau_w: {tw_s}, '
+                    f'gap: {gap_s}, offset: {off_s}, '
                     f'cluster: {rp["cluster"]}, n_samples: {rp["n_samples"]}}}\n')
 
     n_with = sum(1 for rp in rel_params.values() if rp['shift'] is not None)
