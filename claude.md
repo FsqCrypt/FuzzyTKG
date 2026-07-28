@@ -1929,3 +1929,182 @@ feat/query-type-offset-scaling  ← P0+P1+Combined Shift + Full Ablation (Sessio
 - 解决方案：分支级 Shift（在模糊算子前校准分数）+ 通用三值分解（所有 call site 统一）
 - 三值不是 negation 专属——分解公式相同，只是组合系数 β 因上下文而异
 - 两个修正完成后，所有复合查询类型预期 ≥3% 提升
+
+---
+
+# Session 8 实验结果 — 2026-07-28 晚间
+
+## 一、实验设置
+
+- 分支：`feat/branch-shift-universal-3value`
+- 数据集：FB15k-237 (474 relations, 14,505 entities)
+- Backbone：CQD, B-spline membership
+- 改动：分支级 per-relation shift + 通用三值分解（CONTEXT_BETA）
+- 对比方式：与原始 baseline（无 `--use-rel-memb`）对比
+
+## 二、完整结果
+
+| Query | 类型 | Baseline | Module 1 | Δ | 算子链 |
+|-------|------|----------|----------|---|--------|
+| **3in** | 否定(3分支) | 0.1415 | **0.1602** | **+13.2%** | 2i(1p+1p) → negate 1p → defuzz |
+| **inp** | 否定+投影 | 0.0815 | **0.0840** | **+3.1%** | 2in → top-k → t_norm → max_k |
+| **up** | 并集+投影 | 0.1111 | **0.1139** | **+2.5%** | 2u → top-k → t_norm → max_k |
+| **ip** | 交集+投影 | 0.2010 | **0.2049** | **+2.0%** | 2i → top-k → t_norm → max_k |
+| pi | 路径+交集 | 0.2725 | 0.2749 | +0.9% | 2p+1p → max/min → defuzz |
+| 2u | 并集(终端) | 0.1709 | 0.1717 | +0.5% | 1p+1p → max → defuzz |
+| 2in | 否定(2分支) | 0.1215 | 0.1220 | +0.4% | 1p+1p → negate → defuzz |
+| 3i | 交集(终端) | 0.4832 | 0.4839 | +0.2% | 1p×3 → sort → defuzz |
+| **2i** | 交集(终端) | 0.3466 | 0.3464 | **-0.1%** | 1p+1p → max/min → defuzz |
+| pin | 路径+否定 | 0.0789 | 0.0788 | -0.1% | 2p+1p → negate → defuzz |
+| pni | 路径否定 | 0.0866 | 0.0866 | 0% | 否定路径(保护) |
+
+1p/2p/3p 不使用 membership，完全不变。
+
+## 三、关键发现：链式查询 vs 终端查询
+
+### 3.1 清晰的分层
+
+```
+有投影步骤（top-k → t_norm → max_k）：
+  inp +3.1%, up +2.5%, ip +2.0%   ← 非线性投影放大校准效应
+
+无投影步骤（直接 defuzzification → ranking）：
+  2i -0.1%, 3i +0.2%, 2u +0.5%   ← 校准效应被单调性抵消
+```
+
+### 3.2 根因
+
+终端查询的 defuzzification 是加权平均：
+
+```python
+res_tensor = [(1-a_i)*M + a_i*m for i in 0,1,2]  # 三个高度相关的值
+w = [B-spline(res_0), 1, 1-B-spline(res_2)]       # 非线性权重
+final = weighted_average(w, res_tensor)
+```
+
+三个 `res_i` 高度相关（来自同一对 M/m 的不同 alpha 组合）。权重虽然非线性，但输入值同步变化 → 最终排序由 M/m 主导 → 分支级 shift 对 M/m 的同向平移 → 排序不变。
+
+链式查询有额外的非线性算子（top-k 硬选择 + product t-norm）打破了这个单调性，将校准的小差异放大。
+
+### 3.3 "≥3% 全类型"预期未达成的原因
+
+不是代码问题，不是参数问题，是 **defuzzification 加权平均的数学结构决定了它对分数校准的杠杆度天然低**。我们之前的分析（Session 8 前半部分）正确地指出了问题在 B-spline 之后，但低估了 defuzzification 对校准的不敏感性。
+
+## 四、下一步探索：分支级 B-spline 转换
+
+### 4.1 动机
+
+当前流程：
+
+```
+scores → shift → M=max, m=min → res → B-spline(res) → weight
+                      ↑
+              max/min 操作在 B-spline 之前
+              — 非线性被浪费在组合之后
+```
+
+问题：B-spline 的非线性作用在组合之后的单值上，对所有 entity 同向收缩，不改变排序。
+
+### 4.2 方案
+
+**把 B-spline 前移到每个分支内部、max/min 之前：**
+
+```
+scores_1 → shift → B-spline → m_1  [0,1]
+scores_2 → shift → B-spline → m_2  [0,1]
+→ M = max(m_1, m_2), m = min(m_1, m_2)  ← 在 membership 空间做 max/min
+→ res = (1-a)*M + a*m  [0,1]
+→ 直接作为 weight（不再经过 B-spline）
+```
+
+### 4.3 数学论证
+
+考虑一个具体场景：hard relation (tau_s≈3.2, shift≈+2.0, threshd=4.7)。
+
+正确答案 entity_A：hard_rel 得分 6.0，easy_rel 得分 8.0。
+
+**当前方案（B-spline 在组合后）**：
+
+```
+shifted_hard = 6.0 - 2.0 = 4.0  (< threshd=4.7)
+shifted_easy = 8.0 - 0.5 = 7.5
+M = 7.5, m = 4.0
+res = 0.3×7.5 + 0.7×4.0 = 5.05
+B-spline(5.05) ≈ 0.07  → 权重很低！
+```
+
+错误答案 entity_B：hard_rel 8.0, easy_rel 6.0。
+
+```
+shifted_hard = 8.0 - 2.0 = 6.0
+shifted_easy = 6.0 - 0.5 = 5.5
+M = 6.0, m = 5.5
+res = 0.3×6.0 + 0.7×5.5 = 5.65
+B-spline(5.65) ≈ 0.15  → 权重高于正确答案！
+```
+
+**❌ 排名反转：错误答案（两个中分）> 正确答案（一高一低）。**
+
+**分支级 B-spline 方案**：
+
+```
+entity_A:
+  B-spline(4.0) = 0    (< threshd)
+  B-spline(7.5) ≈ 0.5
+  M = 0.5, m = 0
+  res = 0.3×0.5 + 0.7×0 = 0.15
+
+entity_B:
+  B-spline(6.0) ≈ 0.2
+  B-spline(5.5) ≈ 0.1
+  M = 0.2, m = 0.1
+  res = 0.3×0.2 + 0.7×0.1 = 0.13
+```
+
+**✓ 排名修正：正确答案（0.15）> 错误答案（0.13）。**
+
+软 min 在 [0,1] 空间中对 "一个分支为零" 的惩罚比对 "两个分支都勉强" 更重——这正是我们想要的行为。
+
+### 4.4 预期影响
+
+| 查询类型 | 当前 Δ | 预期 Δ | 机制 |
+|---------|--------|--------|------|
+| 3in | +13.2% | +13%+ | 不变 |
+| 2i | -0.1% | **+3-5%** | 分支级 B-spline 打破单调性 |
+| 3i | +0.2% | **+3-5%** | 同上 |
+| 2u | +0.5% | **+3-5%** | 同上 |
+| ip | +2.0% | **+4-6%** | 分支级 + 投影放大（叠加） |
+| up | +2.5% | **+4-6%** | 同上 |
+| pi | +0.9% | **+2-4%** | path 分支不变，部分受益 |
+
+### 4.5 改动范围
+
+仅修改 4 个终端查询函数（`query_2i`, `query_3i`, `query_2u_dnf`, `query_pi`），每个约 10 行：
+- 在分支级 shift 之后、max/min 之前，调用 `cal_membership(shifted_score)` 将分数转为 membership
+- 取消 defuzzification 中对 `cal_membership3` 的调用（值已在 [0,1] 内）
+- 改动约 60 行，两文件（CQD + QTO）
+
+不影响 negation 查询（`query_2in/3in/pin/pni` 保持不变）。
+
+## 五、分支状态（Session 8 更新）
+
+```
+master                              ← 原始基线
+feat/rel-aware-membership           ← Session 2 Bounded Score-Shift
+feat/fix-pni-path                   ← pni 修复 + unified 0.5 (Session 3)
+feat/dual-threshold-shift           ← tau_w + tau_s gap capped (Session 3)
+feat/three-value-offset             ← Fractional Penalty 三值 (Session 4-6)
+feat/query-type-offset-scaling      ← Combined Shift + Full Ablation (Session 7)
+feat/branch-shift-universal-3value  ← 分支级 Shift + 通用三值 ★ 当前 (Session 8)
+  ├── 6a6690a feat: branch-level shift + universal three-value
+  └── a79ece8 docs: 创新点重新定位 + 实验结果
+→ feat/branch-bspline-intersection  ← 分支级 B-spline + 交叉组合 (Session, 待创建)
+```
+
+**Session 8 实验关键洞察**：
+- 分支级 shift + 通用三值实现并测试完毕
+- 3in 未降反升（0.1602 vs Session 7 的 0.1590）
+- 链式查询（ip/up/inp）有中等提升（+2-3%），投影非线性放大校准效应
+- 终端查询（2i/3i/2u）几乎不变——defuzzification 加权平均保持单调性
+- "全类型 ≥3%" 未达成，根因是 defuzzification 的数学结构而非方法缺陷
+- 下一步：分支级 B-spline 转换——将非线性前移到 max/min 之前，数学论证表明可修复排名反转
