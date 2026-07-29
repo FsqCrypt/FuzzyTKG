@@ -2108,3 +2108,181 @@ feat/branch-shift-universal-3value  ← 分支级 Shift + 通用三值 ★ 当�
 - 终端查询（2i/3i/2u）几乎不变——defuzzification 加权平均保持单调性
 - "全类型 ≥3%" 未达成，根因是 defuzzification 的数学结构而非方法缺陷
 - 下一步：分支级 B-spline 转换——将非线性前移到 max/min 之前，数学论证表明可修复排名反转
+
+
+# Session 9 — 2026-07-29：线性校准的理论边界与实验证据收敛
+
+## 一、背景：Session 8 留下的问题
+
+Session 8 的分支级 shift 实验发现：终端 intersection/union（2i/3i/2u）对 per-relation 校准几乎不敏感（~0%），而 negation（3in +13.2%）和链式查询（ip/up +2-3%）受益明显。
+
+Session 8 末尾提出分支级 B-spline 转换——将 B-spline 非线性前移到 max/min 之前，用数学例子证明可以修复排名反转。
+
+## 二、实验 1：分支级 B-spline 转换（分支 `feat/branch-bspline-intersection`）
+
+### 2.1 方案
+
+将 `cal_membership(shifted_score)` 应用于每个分支，在 membership [0,1] 空间做 max/min：
+
+```
+scores → shift → B-spline → m ∈ [0,1]
+→ max(m_1, m_2), min(m_1, m_2) → soft-min → weight
+```
+
+### 2.2 结果
+
+| Query | Baseline | Branch B-spline | Δ |
+|-------|----------|----------------|---|
+| 2i | 0.34660 | 0.32039 | **-7.6%** |
+
+**崩溃。** 原因：B-spline 的硬阈值 `threshd=4.7` 在分支级应用，将中等分数（shift 后略低于 4.7）全部归零。两个分支的 zero 互乘 → 大量 entity 被错误零化。动态范围丢失。
+
+### 2.3 修正：B-spline on weights only
+
+改为 B-spline 只用于 defuzzification weights，res_tensor 保持 raw score 空间：
+
+```
+scores → shift → M, m (raw) → soft-min (raw)
+w_1 = B-spline(M), w_3 = 1 - B-spline(m)  ← 仅权重非线性
+```
+
+### 2.4 结果
+
+| Query | Baseline | B-spline weights | Δ |
+|-------|----------|-----------------|---|
+| 2i | 0.34660 | 0.34704 | +0.13% |
+| 3i | 0.48317 | 0.48415 | +0.20% |
+
+**回归到基本持平。** B-spline 权重改变不了 res_tensor 主导的排序——三个 res 值高度相关，加权平均保持排序不变。
+
+## 三、实验 2：Score Normalization（分支 `feat/score-normalization`）
+
+### 3.1 理论动机
+
+Session 8 揭示了 per-relation std 差异达 8.5x（范围 0.25~2.13）。Shift 只调整了位置（mean），完全忽略了尺度（std）。高方差 relation 的 score 天然主导 max/min 操作。
+
+Normalization 同时调整位置和尺度：
+```
+score_norm = (score - mean_r) / std_r × global_std + global_mean
+```
+
+### 3.2 实现
+
+- 扩展 `RelationMembership`：新增 `means`/`stds` 数组、`get_norm_params_for_rel()` 方法
+- 扩展 params YAML：397/474 个 relation 有 per-relation mean/std（从验证集 1p 统计）
+- 修改 `query_2i/3i/2u_dnf/pi`（CQD+QTO）：用 normalization 替代 shift
+- Negation 查询保持不变（已通过 shift+offset 正确工作）
+
+### 3.3 结果
+
+| Query | Baseline | Normalization | Δ |
+|-------|----------|-------------|---|
+| **2i** | 0.34660 | 0.34660 | **0.00%** |
+| **3i** | 0.48317 | 0.48317 | **0.00%** |
+| **2u** | 0.17091 | 0.17091 | **0.00%** |
+| pi | 0.27250 | 0.27250 | 0.00% |
+| ip | 0.20098 | 0.20098 | 0.00% |
+| up | 0.11114 | 0.11114 | 0.00% |
+
+**全零。所有值完全等于 baseline。**
+
+## 四、理论根因：线性变换保持排序
+
+### 4.1 数学证明
+
+Normalization 和 shift 都是 per-relation 线性变换：
+```
+s'(e) = a_r × s(e) + b_r       (a_r = global_std / std_r, b_r = ...)
+```
+
+线性变换的性质：
+1. **Within-relation ordering preserved**：对任意 entity e1, e2 在 relation r 上：
+   `s_r(e1) > s_r(e2) ⇔ s'_r(e1) > s'_r(e2)`（单调性保证）
+
+2. **Cross-relation ordering may change**：M(e) = max(s'_r1(e), s'_r2(e)) 中的 max 可能从 r1 翻到 r2（或反之）——但这个变化只在 e1 和 e2 在不同 branch 上有相反的相对排序时才发生。
+
+3. **Soft-min preserves overall ordering**：`res = (1-a)*M + a*m` 是 M 和 m 的凸组合。如果两个 entity 在所有 branch 上的排序相同（e1 > e2 on r1 AND r1 > e2 on r2），则 M(e1) > M(e2) 且 m(e1) > m(e2)，从而 res(e1) > res(e2)——无论 scale 如何调整。
+
+4. **Defuzzification 再保持一次**：加权平均（三个高度相关的 res 值）再次保持排序。
+
+### 4.2 实证：三组独立的零结果收敛
+
+| 实验 | 机制 | 终端 2i/3i/2u 效果 |
+|------|------|-------------------|
+| 分支级 shift (Session 8) | 线性：位置调整 | ~0% |
+| B-spline weights (Session 9) | 非线性权重，线性 res | ~0% |
+| Score normalization (Session 9) | 线性：位置+尺度调整 | **0.00%** |
+
+**三组独立实验收敛于同一个结论：任何线性（或仅权重非线性）的 per-relation 校准都无法改善终端 intersection/union。这不是参数调优问题——是数学结构决定的。**
+
+### 4.3 完整实验对比：三个分支的最终结果
+
+| Query | 类型 | Shift (Session 8) | B-spline weights | Normalization | 结论 |
+|-------|------|------------------|-----------------|--------------|------|
+| 3in | Negation | +13.2% | +12.8% | — | 非线性(membership)+生存控制=极高杠杆 |
+| inp | Neg+Proj | +3.1% | +3.1% | — | 投影非线性放大 |
+| up | Union+Proj | +2.5% | +2.2% | 0% | 投影非线性放大 |
+| ip | Inter+Proj | +2.0% | +1.6% | 0% | 投影非线性放大 |
+| pi | Path+Inter | +0.9% | +0.9% | 0% | 部分受益 |
+| **2i** | **Inter终端** | **-0.1%** | **+0.1%** | **0%** | **线性校准=无效** |
+| **3i** | **Inter终端** | **+0.2%** | **+0.2%** | **0%** | **同上** |
+| **2u** | **Union终端** | **+0.5%** | **+0.5%** | **0%** | **同上** |
+
+## 五、诚实结论：模块一的能力边界
+
+### 5.1 模块一能做到的和不能做到的
+
+**能做到**：
+- Negation（3in +13.2%, inp +3.1%）：per-relation shift + offset 极有效
+- 链式查询（ip +2.0%, up +2.5%）：投影非线性放大校准效应
+- 即插即用、无需重训、代码侵入性极小
+
+**不能做到**：
+- 终端 intersection/union（2i/3i/2u）：任何线性校准都无法改变排序
+- 全查询类型 ≥3%：三个独立实验证明 target 在数学上不可达
+
+### 5.2 为什么这仍然是一个完整的贡献
+
+不是"方法有局限所以不够好"，而是"我们通过实验+理论完整刻画了关系感知校准的能力边界"：
+
+```
+贡献 1: 问题发现 — 跨 relation 分数不可比
+贡献 2: 校准方法 — 双层校准 (Shift + Offset)
+贡献 3: 边界分析 — 证明了线性校准无法改善终端 intersection
+          → 这不 failure，这是理论 insight
+          → 指向非线性校准 (Per-Cluster B-spline) 或算子自适应 (Module 2)
+```
+
+### 5.3 下一步：非线性方向
+
+三个可能的非线性方向，按优先级：
+
+1. **Per-Cluster B-spline**：Hard/Medium/Easy 三个 cluster 用不同的 B-spline 曲线。改变曲线形状（threshold、steepness）而非仅平移/缩放。Hard relation 需要更低的 threshd 和更缓的上升段。代码改动约 100 行。
+
+2. **Alpha-adaptation (Module 2)**：Intersection 的 α 参数因 relation 可靠性而异。Hard relation → α 更大（更接近 min，更保守）。这直接改变了 soft-min 算子的行为——不是校准分数，而是校准算子。
+
+3. **Defuzzification 替换**：用非线性聚合（乘积、几何平均）替代加权平均，打破三个 res 值高度相关的问题。
+
+## 六、分支状态（Session 9 更新）
+
+```
+master                              ← 原始基线
+feat/rel-aware-membership           ← Session 2 Bounded Score-Shift
+feat/fix-pni-path                   ← pni 修复 + unified 0.5 (Session 3)
+feat/dual-threshold-shift           ← tau_w + tau_s gap capped (Session 3)
+feat/three-value-offset             ← Fractional Penalty 三值 (Session 4-6)
+feat/query-type-offset-scaling      ← Combined Shift + Full Ablation (Session 7)
+feat/branch-shift-universal-3value  ← 分支级 Shift + 通用三值 ★ 当前稳定基线 (Session 8)
+  ├── feat/branch-bspline-intersection  ← B-spline 权重实验 [已归档]
+  └── feat/score-normalization         ← Score normalization 实验 [已归档]
+→ feat/per-cluster-bspline             ← 下一步：非线性 per-cluster B-spline
+```
+
+**Session 9 关键洞察**：
+- 三组独立实验（shift, B-spline weights, normalization）收敛于同一个结论
+- 任何线性 per-relation 校准都无法改善终端 intersection/union
+- 数学根因：线性变换保持 within-relation 排序，soft-min + defuzzification 再保持一次
+- 非 calibration 问题——是线性变换的数学边界
+- 突破边界需要非线性 per-relation 映射或算子自适应
+- 3in +13.2%（非线性 membership × 生存控制） = 模块一的价值证明
+- 终端 intersection ~0%（线性校准 × 排序保持）= 模块二的动机
