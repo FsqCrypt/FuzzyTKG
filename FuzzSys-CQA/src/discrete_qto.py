@@ -206,7 +206,7 @@ def query_2i(entity_embeddings: nn.Module,
     scores_1 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 0:2])
     scores_2 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 2:4])
 
-    # Branch-level per-relation shift
+    # Branch-level per-relation shift.
     if myglobal.FS_PARAMS.use_rel_memb:
         rel_memb = myglobal.FS_PARAMS.REL_MEMB
         shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])
@@ -221,12 +221,15 @@ def query_2i(entity_embeddings: nn.Module,
 
     res_tensor = (1. - a) * M + a * m
 
-    # Relation-aware: use first branch relation for combined scores
-    mu_S1, mu_B1, mu_W1 = cal_membership3(res_tensor[0], queries[:, 1], 'combined')
-    mu_S3, mu_B3, mu_W3 = cal_membership3(res_tensor[2], queries[:, 1], 'combined')
-    w_1 = mu_S1
+    if myglobal.FS_PARAMS.use_rel_memb:
+        w_1 = cal_membership(M)         # B-spline on dominating branch
+        w_3 = 1.0 - cal_membership(m)   # B-spline on weaker branch
+    else:
+        mu_S1, _, _, _ = cal_membership3(res_tensor[0], queries[:, 1], 'combined')
+        mu_S3, _, _, _ = cal_membership3(res_tensor[2], queries[:, 1], 'combined')
+        w_1 = mu_S1
+        w_3 = 1.0 - mu_S3
     w_2 = torch.ones_like(w_1)
-    w_3 = 1.0 - mu_S3
 
     w_tensor = torch.vstack([w_1, w_2, w_3])
 
@@ -242,7 +245,7 @@ def query_3i(entity_embeddings: nn.Module,
     scores_2 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 2:4])
     scores_3 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 4:6])
 
-    # Branch-level per-relation shift
+    # Branch-level per-relation shift.
     if myglobal.FS_PARAMS.use_rel_memb:
         rel_memb = myglobal.FS_PARAMS.REL_MEMB
         shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])
@@ -269,12 +272,15 @@ def query_3i(entity_embeddings: nn.Module,
 
     res_tensor = torch.vstack([res_1, res_2, res_3])
 
-    # Relation-aware: use first branch relation for combined scores
-    mu_S1, mu_B1, mu_W1 = cal_membership3(res_tensor[0], queries[:, 1], 'combined')
-    mu_S3, mu_B3, mu_W3 = cal_membership3(res_tensor[2], queries[:, 1], 'combined')
-    w_1 = mu_S1
+    if myglobal.FS_PARAMS.use_rel_memb:
+        w_1 = cal_membership(M)
+        w_3 = 1.0 - cal_membership(m)
+    else:
+        mu_S1, _, _, _ = cal_membership3(res_tensor[0], queries[:, 1], 'combined')
+        mu_S3, _, _, _ = cal_membership3(res_tensor[2], queries[:, 1], 'combined')
+        w_1 = mu_S1
+        w_3 = 1.0 - mu_S3
     w_2 = torch.ones_like(w_1)
-    w_3 = 1.0 - mu_S3
 
     w_tensor = torch.vstack([w_1, w_2, w_3])
 
@@ -343,7 +349,7 @@ def query_2u_dnf(entity_embeddings: nn.Module,
     scores_1 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 0:2])
     scores_2 = query_1p(entity_embeddings=entity_embeddings, queries=queries[:, 2:4])
 
-    # Branch-level per-relation shift
+    # Branch-level per-relation shift.
     if myglobal.FS_PARAMS.use_rel_memb:
         rel_memb = myglobal.FS_PARAMS.REL_MEMB
         shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])
@@ -353,15 +359,16 @@ def query_2u_dnf(entity_embeddings: nn.Module,
 
     MM = myglobal.FS_PARAMS.Max_score
     M = torch.maximum(scores_1, scores_2)
-    m = torch.minimum(scores_1, scores_2)
 
     a = torch.FloatTensor(list(myglobal.FS_PARAMS.ALPHA_U_L)).unsqueeze(-1).cuda()
 
     res_tensor = (1. - a) * MM + a * M
 
-    # Relation-aware: use first branch relation for union
-    mu_S, mu_B, mu_W = cal_membership3(M, queries[:, 1], 'union')
-    w_1 = mu_S
+    if myglobal.FS_PARAMS.use_rel_memb:
+        w_1 = cal_membership(M)
+    else:
+        mu_S, _, _, _ = cal_membership3(M, queries[:, 1], 'union')
+        w_1 = mu_S
     w_2 = w_1
     w_3 = torch.ones_like(w_1)
 

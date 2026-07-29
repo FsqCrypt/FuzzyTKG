@@ -260,8 +260,7 @@ def query_2i(entity_embeddings: nn.Module,
     scores_2 = query_1p(entity_embeddings=entity_embeddings, predicate_embeddings=predicate_embeddings,
                         queries=queries[:, 2:4], scoring_function=scoring_function)
 
-    # Branch-level per-relation shift: make scores comparable across relations
-    # before max/min combination (Module 1: cross-relation score comparability).
+    # Branch-level per-relation shift: make scores comparable across relations.
     if myglobal.FS_PARAMS.use_rel_memb:
         rel_memb = myglobal.FS_PARAMS.REL_MEMB
         shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])  # [B]
@@ -269,6 +268,7 @@ def query_2i(entity_embeddings: nn.Module,
         scores_1 = scores_1 - shift_1.unsqueeze(1)
         scores_2 = scores_2 - shift_2.unsqueeze(1)
 
+    # Raw-score max/min for res_tensor (preserves dynamic range).
     M = torch.maximum(scores_1, scores_2)
     m = torch.minimum(scores_1, scores_2)
 
@@ -276,12 +276,21 @@ def query_2i(entity_embeddings: nn.Module,
 
     res_tensor = (1. - a) * M + a * m
 
-    # Relation-aware: use first branch relation for combined scores
-    mu_S1, mu_B1, mu_W1 = cal_membership3(res_tensor[0], queries[:, 1], 'combined')
-    mu_S3, mu_B3, mu_W3 = cal_membership3(res_tensor[2], queries[:, 1], 'combined')
-    w_1 = mu_S1
+    # B-spline weights: apply nonlinearity to max/min SEPARATELY before
+    # they get mixed via soft-min. This is where B-spline breaks the
+    # defuzzification monotonicity (Session 8 key insight).
+    if myglobal.FS_PARAMS.use_rel_memb:
+        # B-spline on raw branch-extremes before soft-min blending
+        w_M = cal_membership(M)         # membership of the dominating branch
+        w_m = cal_membership(m)         # membership of the weaker branch
+        w_1 = w_M                       # trust max when it's genuinely high
+        w_3 = 1.0 - w_m                 # discount min when it's genuinely low
+    else:
+        mu_S1, _, _, _ = cal_membership3(res_tensor[0], queries[:, 1], 'combined')
+        mu_S3, _, _, _ = cal_membership3(res_tensor[2], queries[:, 1], 'combined')
+        w_1 = mu_S1
+        w_3 = 1.0 - mu_S3
     w_2 = torch.ones_like(w_1)
-    w_3 = 1.0 - mu_S3
 
     w_tensor = torch.vstack([w_1, w_2, w_3])
 
@@ -303,13 +312,12 @@ def query_3i(entity_embeddings: nn.Module,
     scores_3 = query_1p(entity_embeddings=entity_embeddings, predicate_embeddings=predicate_embeddings,
                         queries=queries[:, 4:6], scoring_function=scoring_function)
 
-    # Branch-level per-relation shift: make scores comparable across relations
-    # before sort/max/min combination.
+    # Branch-level per-relation shift.
     if myglobal.FS_PARAMS.use_rel_memb:
         rel_memb = myglobal.FS_PARAMS.REL_MEMB
-        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])  # [B]
-        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])  # [B]
-        shift_3 = rel_memb.get_shift_for_rel(queries[:, 5])  # [B]
+        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])
+        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])
+        shift_3 = rel_memb.get_shift_for_rel(queries[:, 5])
         scores_1 = scores_1 - shift_1.unsqueeze(1)
         scores_2 = scores_2 - shift_2.unsqueeze(1)
         scores_3 = scores_3 - shift_3.unsqueeze(1)
@@ -324,17 +332,19 @@ def query_3i(entity_embeddings: nn.Module,
     (a_1, a_2, a_3) = myglobal.FS_PARAMS.ALPHA_I_L
 
     res_1 = (((1. - a_1) * M + a_1 * A) + ((1. - a_1) * M + a_1 * m) + ((1. - a_1) * A + a_1 * m))/3
-    
     res_2 = (((1. - a_2) * M + a_2 * A) + ((1. - a_2) * M + a_2 * m) + ((1. - a_2) * A + a_2 * m))/3
-    
     res_3 = (((1. - a_3) * M + a_3 * A) + ((1. - a_3) * M + a_3 * m) + ((1. - a_3) * A + a_3 * m))/3
 
-    # Relation-aware: use first branch relation for combined scores
-    mu_S1, mu_B1, mu_W1 = cal_membership3(res_1, queries[:, 1], 'combined')
-    mu_S3, mu_B3, mu_W3 = cal_membership3(res_3, queries[:, 1], 'combined')
-    w_1 = mu_S1
+    # B-spline weights on branch extremes (M=best, m=worst) separately.
+    if myglobal.FS_PARAMS.use_rel_memb:
+        w_1 = cal_membership(M)         # trust dominating branch
+        w_3 = 1.0 - cal_membership(m)   # discount weakest branch
+    else:
+        mu_S1, _, _, _ = cal_membership3(res_1, queries[:, 1], 'combined')
+        mu_S3, _, _, _ = cal_membership3(res_3, queries[:, 1], 'combined')
+        w_1 = mu_S1
+        w_3 = 1.0 - mu_S3
     w_2 = torch.ones_like(w_1)
-    w_3 = 1.0 - mu_S3
 
     res_tensor = torch.vstack([res_1, res_2, res_3])
     w_tensor = torch.vstack([w_1, w_2, w_3])
@@ -410,6 +420,8 @@ def query_pi(entity_embeddings: nn.Module,
     # Branch-level per-relation shift for the 1p branch only.
     # Path branch (scores_1) is skipped: 1p-derived shifts don't apply to
     # 2p path score distributions (same rationale as negation_path in pni).
+    # Note: B-spline conversion is NOT applied here because scores_1 (path)
+    # and scores_2 (1p) must stay in the same scale space for max/min.
     if myglobal.FS_PARAMS.use_rel_memb:
         shift_2 = myglobal.FS_PARAMS.REL_MEMB.get_shift_for_rel(queries[:, 4])
         scores_2 = scores_2 - shift_2.unsqueeze(1)
@@ -446,26 +458,27 @@ def query_2u_dnf(entity_embeddings: nn.Module,
     scores_2 = query_1p(entity_embeddings=entity_embeddings, predicate_embeddings=predicate_embeddings,
                         queries=queries[:, 2:4], scoring_function=scoring_function)
 
-    # Branch-level per-relation shift: make scores comparable across relations
-    # before max/min/union combination.
+    # Branch-level per-relation shift.
     if myglobal.FS_PARAMS.use_rel_memb:
         rel_memb = myglobal.FS_PARAMS.REL_MEMB
-        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])  # [B]
-        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])  # [B]
+        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])
+        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])
         scores_1 = scores_1 - shift_1.unsqueeze(1)
         scores_2 = scores_2 - shift_2.unsqueeze(1)
 
     M = torch.maximum(scores_1, scores_2)
-    m = torch.minimum(scores_1, scores_2)
     MM = torch.max(M)
 
     a = torch.FloatTensor(list(myglobal.FS_PARAMS.ALPHA_U_L)).unsqueeze(-1).cuda()
 
     res_tensor = (1. - a) * MM + a * M
 
-    # Relation-aware: use first branch relation for union
-    mu_S, mu_B, mu_W = cal_membership3(M, queries[:, 1], 'union')
-    w_1 = mu_S
+    # B-spline weight on element-wise max.
+    if myglobal.FS_PARAMS.use_rel_memb:
+        w_1 = cal_membership(M)
+    else:
+        mu_S, _, _, _ = cal_membership3(M, queries[:, 1], 'union')
+        w_1 = mu_S
     w_2 = w_1
     w_3 = torch.ones_like(w_1)
 
