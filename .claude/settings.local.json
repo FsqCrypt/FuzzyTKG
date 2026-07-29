@@ -4,7 +4,13 @@
       "Bash(python3 -c ' *)",
       "Bash(python3 *)",
       "Bash(conda env *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(cat)",
+      "Bash(chmod +x /tmp/run_fb15k_stats.sh)",
+      "Bash(/tmp/run_fb15k_stats.sh)",
+      "Bash(/root/miniconda3/envs/fuzzsys/bin/python *)",
+      "Bash(chmod +x /tmp/run_full_baseline.sh)",
+      "Bash(/tmp/run_full_baseline.sh)"
     ]
   }
 }

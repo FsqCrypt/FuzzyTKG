@@ -8,8 +8,10 @@ from src.base import CQD
 import src.discrete as d1
 import src.myglobal as myglobal
 
-data_path = '../KG_data/FB15k-237-betae'
-params_path = './params/FB15k-237_CQD_rel_memb_params.yml'
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_DIR = os.path.dirname(_SCRIPT_DIR)
+data_path = os.path.join(os.path.dirname(_PROJECT_DIR), 'KG_data/FB15k-237-betae')
+params_path = os.path.join(_PROJECT_DIR, 'params', 'FB15k-237_CQD_rel_memb_params.yml')
 
 # Load data stats
 with open(os.path.join(data_path, 'stats.txt')) as f:
@@ -35,7 +37,7 @@ model = CQD(nentity, nrelation, rank=1000, test_batch_size=1, method='discrete',
             wo_fl=False, backbone_type='CQD', use_cuda=True)
 myglobal.FS_PARAMS.set_static_fs_params(backbone='CQD', memb_type='bspline', dataname='fb15k-237')
 myglobal.FS_PARAMS.load_membership_params('FB15k-237')
-ckpt = torch.load('./models/fb15k-237-betae/checkpoint')
+ckpt = torch.load(os.path.join(_PROJECT_DIR, 'models', 'fb15k-237-betae', 'checkpoint'))
 model.load_state_dict(ckpt['model_state_dict'], strict=False)
 model = model.cuda()
 model.eval()
@@ -109,7 +111,7 @@ output_lines.append('')
 output_lines.append(f'nrelation: {nrelation}')
 output_lines.append(f'global_tau_s: {params["global_tau_s"]:.4f}')
 output_lines.append(f'global_tau_w: {params["global_tau_w"]:.4f}')
-output_lines.append(f'global_offset: {params["global_offset"]}')
+output_lines.append(f'global_offset: {params.get("global_offset", 0.0)}')
 output_lines.append(f'global_mean: {global_mean:.4f}')
 output_lines.append(f'global_std: {global_std:.4f}')
 output_lines.append('')

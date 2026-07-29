@@ -1,493 +1,506 @@
-# Capped dual-threshold shift for FB15k-237 (CQD)
-# max shift capped at 1.5 to prevent over-weakening
+# Relation-aware membership params for FB15k-237 (CQD)
+# Dual-layer: Score-Shift + Fractional Penalty Offset
+# Extended with per-relation mean/std for score normalization
 
 nrelation: 474
 global_tau_s: 4.8255
 global_tau_w: 0.6978
+global_offset: 0.0
+global_mean: 5.9975
+global_std: 1.7136
 
 clusters:
   - id: 0
     shift: 0.5
+    offset: 0.0
+    mean: 5.997539711726486
+    std: 1.7136488529192464
     n_relations: 0
   - id: 1
     shift: 0.8
+    offset: 0.0
+    mean: 5.997539711726486
+    std: 1.7136488529192464
     n_relations: 0
   - id: 2
     shift: 1.2
+    offset: 0.0
+    mean: 5.997539711726486
+    std: 1.7136488529192464
     n_relations: 0
 
 relations:
-  0: {shift: 0.5, tau_s: 6.8520, tau_w: -0.4611, cluster: 0, n_samples: 28}
-  1: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  2: {shift: 1.3981, tau_s: 2.9635, tau_w: 2.3522, cluster: 2, n_samples: 36}
-  3: {shift: 1.0015, tau_s: 3.3221, tau_w: 0.3314, cluster: 2, n_samples: 31}
-  4: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  5: {shift: 0.5, tau_s: 5.7052, tau_w: -1.0009, cluster: 0, n_samples: 30}
-  6: {shift: 0.9404, tau_s: 4.2329, tau_w: 0.8753, cluster: 1, n_samples: 27}
-  7: {shift: 0.931, tau_s: 4.2311, tau_w: 0.8173, cluster: 1, n_samples: 27}
-  8: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  9: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  10: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  11: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  12: {shift: 1.386, tau_s: 2.6156, tau_w: 1.9318, cluster: 2, n_samples: 35}
-  13: {shift: 1.4445, tau_s: 2.3222, tau_w: 1.9890, cluster: 2, n_samples: 35}
-  14: {shift: 0.8476, tau_s: 5.1021, tau_w: 1.1876, cluster: 1, n_samples: 162}
-  15: {shift: 0.5643, tau_s: 4.8403, tau_w: -0.7740, cluster: 0, n_samples: 42}
-  16: {shift: 0.8295, tau_s: 4.7632, tau_w: 0.7402, cluster: 1, n_samples: 31}
-  17: {shift: 0.8682, tau_s: 4.8331, tau_w: 1.0420, cluster: 1, n_samples: 34}
-  18: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  19: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  20: {shift: 0.5, tau_s: 6.2295, tau_w: -0.0013, cluster: 0, n_samples: 70}
-  21: {shift: 0.5, tau_s: 6.3077, tau_w: -0.2247, cluster: 0, n_samples: 86}
-  22: {shift: 0.5, tau_s: 7.7478, tau_w: -1.1686, cluster: 0, n_samples: 30}
-  23: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  24: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  25: {shift: 1.1623, tau_s: 2.9317, tau_w: 0.9053, cluster: 2, n_samples: 24}
-  26: {shift: 0.5273, tau_s: 4.8070, tau_w: -1.0289, cluster: 0, n_samples: 103}
-  27: {shift: 0.8406, tau_s: 4.9880, tau_w: 1.0314, cluster: 1, n_samples: 284}
-  28: {shift: 0.5, tau_s: 5.1037, tau_w: -1.1167, cluster: 0, n_samples: 31}
-  29: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  30: {shift: 1.0648, tau_s: 4.1227, tau_w: 1.5117, cluster: 2, n_samples: 86}
-  31: {shift: 0.7503, tau_s: 3.6660, tau_w: -0.8324, cluster: 1, n_samples: 32}
-  32: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  33: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  34: {shift: 0.5, tau_s: 5.5704, tau_w: -1.0899, cluster: 0, n_samples: 33}
-  35: {shift: 1.1489, tau_s: 4.6910, tau_w: 2.5845, cluster: 2, n_samples: 370}
-  36: {shift: 0.6069, tau_s: 5.2210, tau_w: -0.1376, cluster: 0, n_samples: 46}
-  37: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  38: {shift: 0.555, tau_s: 5.0559, tau_w: -0.6144, cluster: 0, n_samples: 33}
-  39: {shift: 1.1234, tau_s: 4.7132, tau_w: 2.4538, cluster: 2, n_samples: 116}
-  40: {shift: 0.8043, tau_s: 4.9187, tau_w: 0.7444, cluster: 1, n_samples: 98}
-  41: {shift: 0.5782, tau_s: 5.0334, tau_w: -0.4973, cluster: 0, n_samples: 38}
-  42: {shift: 0.9632, tau_s: 4.6678, tau_w: 1.4470, cluster: 1, n_samples: 36}
-  43: {shift: 1.0667, tau_s: 4.3354, tau_w: 1.7355, cluster: 2, n_samples: 46}
-  44: {shift: 1.371, tau_s: 3.4755, tau_w: 2.7017, cluster: 2, n_samples: 38}
-  45: {shift: 0.9727, tau_s: 3.5126, tau_w: 0.3490, cluster: 1, n_samples: 30}
-  46: {shift: 0.5, tau_s: 6.5080, tau_w: -0.1583, cluster: 0, n_samples: 35}
-  47: {shift: 0.6017, tau_s: 6.7887, tau_w: 1.3988, cluster: 0, n_samples: 84}
-  48: {shift: 1.1352, tau_s: 2.1510, tau_w: -0.0376, cluster: 2, n_samples: 30}
-  49: {shift: 1.4833, tau_s: 1.8016, tau_w: 2.0870, cluster: 2, n_samples: 41}
-  50: {shift: 0.5, tau_s: 4.9829, tau_w: -1.2598, cluster: 0, n_samples: 30}
-  51: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  52: {shift: 0.5, tau_s: 5.8515, tau_w: -1.1595, cluster: 0, n_samples: 38}
-  53: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  54: {shift: 1.0784, tau_s: 4.9828, tau_w: 2.4531, cluster: 2, n_samples: 92}
-  55: {shift: 0.6924, tau_s: 4.4017, tau_w: -0.4436, cluster: 0, n_samples: 31}
-  56: {shift: 0.5163, tau_s: 4.8879, tau_w: -1.0140, cluster: 0, n_samples: 33}
-  57: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  58: {shift: 0.5042, tau_s: 5.5925, tau_w: -0.3822, cluster: 0, n_samples: 141}
-  59: {shift: 0.5, tau_s: 5.6058, tau_w: -0.5350, cluster: 0, n_samples: 70}
-  60: {shift: 0.5541, tau_s: 5.0901, tau_w: -0.5855, cluster: 0, n_samples: 31}
-  61: {shift: 0.8522, tau_s: 4.8570, tau_w: 0.9704, cluster: 1, n_samples: 53}
-  62: {shift: 0.5524, tau_s: 4.7125, tau_w: -0.9730, cluster: 0, n_samples: 32}
-  63: {shift: 0.9617, tau_s: 5.0965, tau_w: 1.8668, cluster: 1, n_samples: 284}
-  64: {shift: 1.1245, tau_s: 4.8870, tau_w: 2.6339, cluster: 2, n_samples: 117}
-  65: {shift: 0.6553, tau_s: 4.7792, tau_w: -0.2890, cluster: 0, n_samples: 31}
-  66: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  67: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  68: {shift: 0.5, tau_s: 7.6178, tau_w: -1.3642, cluster: 0, n_samples: 30}
-  69: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  70: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  71: {shift: 0.5, tau_s: 6.4854, tau_w: -0.1546, cluster: 0, n_samples: 73}
-  72: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  73: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  74: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  75: {shift: 0.5, tau_s: 5.9807, tau_w: -0.3355, cluster: 0, n_samples: 31}
-  76: {shift: 1.1176, tau_s: 2.9613, tau_w: 0.6666, cluster: 2, n_samples: 31}
-  77: {shift: 1.1943, tau_s: 3.2254, tau_w: 1.3911, cluster: 2, n_samples: 35}
-  78: {shift: 1.0483, tau_s: 2.6163, tau_w: -0.0937, cluster: 2, n_samples: 30}
-  79: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  80: {shift: 0.8271, tau_s: 4.6917, tau_w: 0.6541, cluster: 1, n_samples: 18}
-  81: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  82: {shift: 0.5992, tau_s: 4.4763, tau_w: -0.9286, cluster: 0, n_samples: 38}
-  83: {shift: 1.0223, tau_s: 4.2116, tau_w: 1.3457, cluster: 2, n_samples: 64}
-  84: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  85: {shift: 0.6472, tau_s: 4.0342, tau_w: -1.0823, cluster: 0, n_samples: 34}
-  86: {shift: 0.5, tau_s: 6.0616, tau_w: -1.1654, cluster: 0, n_samples: 30}
-  87: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  88: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  89: {shift: 0.772, tau_s: 3.8573, tau_w: -0.5105, cluster: 1, n_samples: 34}
-  90: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  91: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  92: {shift: 0.7721, tau_s: 4.3211, tau_w: -0.0462, cluster: 1, n_samples: 30}
-  93: {shift: 0.9935, tau_s: 4.5975, tau_w: 1.5584, cluster: 1, n_samples: 33}
-  94: {shift: 0.9507, tau_s: 5.1991, tau_w: 1.9033, cluster: 1, n_samples: 41}
-  95: {shift: 0.7091, tau_s: 4.1507, tau_w: -0.5944, cluster: 1, n_samples: 31}
-  96: {shift: 0.5, tau_s: 5.7880, tau_w: -1.0294, cluster: 0, n_samples: 31}
-  97: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  98: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  99: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  100: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  101: {shift: 0.8025, tau_s: 3.7513, tau_w: -0.4336, cluster: 1, n_samples: 31}
-  102: {shift: 0.5, tau_s: 7.4642, tau_w: -1.1994, cluster: 0, n_samples: 29}
-  103: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  104: {shift: 0.7542, tau_s: 4.1076, tau_w: -0.3670, cluster: 1, n_samples: 33}
-  105: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  106: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  107: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  108: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  109: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  110: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  111: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  112: {shift: 0.5, tau_s: 11.2476, tau_w: 2.1932, cluster: 0, n_samples: 30}
-  113: {shift: 0.5, tau_s: 11.2548, tau_w: 2.5051, cluster: 0, n_samples: 30}
-  114: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  115: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  116: {shift: 0.607, tau_s: 5.8837, tau_w: 0.5255, cluster: 0, n_samples: 30}
-  117: {shift: 0.6143, tau_s: 5.8838, tau_w: 0.5695, cluster: 0, n_samples: 31}
-  118: {shift: 1.2576, tau_s: 2.7485, tau_w: 1.2939, cluster: 2, n_samples: 44}
-  119: {shift: 1.1599, tau_s: 1.9564, tau_w: -0.0844, cluster: 2, n_samples: 31}
-  120: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  121: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  122: {shift: 0.5, tau_s: 5.3258, tau_w: -0.7803, cluster: 0, n_samples: 34}
-  123: {shift: 1.0007, tau_s: 5.3158, tau_w: 2.3203, cluster: 2, n_samples: 67}
-  124: {shift: 0.5, tau_s: 7.9129, tau_w: -0.5684, cluster: 0, n_samples: 15}
-  125: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  126: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  127: {shift: 0.5, tau_s: 6.6344, tau_w: -1.0954, cluster: 0, n_samples: 30}
-  128: {shift: 0.5, tau_s: 7.2381, tau_w: -0.3135, cluster: 0, n_samples: 11}
-  129: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  130: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  131: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  132: {shift: 1.1377, tau_s: 2.0590, tau_w: -0.1146, cluster: 2, n_samples: 30}
-  133: {shift: 1.4801, tau_s: 2.4234, tau_w: 2.3040, cluster: 2, n_samples: 72}
-  134: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  135: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  136: {shift: 0.7528, tau_s: 5.0760, tau_w: 0.5929, cluster: 1, n_samples: 39}
-  137: {shift: 0.6578, tau_s: 5.1004, tau_w: 0.0474, cluster: 0, n_samples: 38}
-  138: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  139: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  140: {shift: 0.6765, tau_s: 4.9338, tau_w: -0.0075, cluster: 0, n_samples: 19}
-  141: {shift: 0.6773, tau_s: 4.9651, tau_w: 0.0290, cluster: 0, n_samples: 19}
-  142: {shift: 1.3122, tau_s: 4.3974, tau_w: 3.2709, cluster: 2, n_samples: 143}
-  143: {shift: 0.6778, tau_s: 4.3750, tau_w: -0.5580, cluster: 0, n_samples: 32}
-  144: {shift: 0.5, tau_s: 5.8546, tau_w: -0.6721, cluster: 0, n_samples: 30}
-  145: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  146: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  147: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  148: {shift: 0.7882, tau_s: 4.8628, tau_w: 0.5921, cluster: 1, n_samples: 31}
-  149: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  150: {shift: 0.5647, tau_s: 4.6365, tau_w: -0.9754, cluster: 0, n_samples: 35}
-  151: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  152: {shift: 1.0182, tau_s: 4.8040, tau_w: 1.9132, cluster: 2, n_samples: 87}
-  153: {shift: 0.7479, tau_s: 4.4674, tau_w: -0.0450, cluster: 1, n_samples: 32}
-  154: {shift: 1.4362, tau_s: 1.7823, tau_w: 1.3995, cluster: 2, n_samples: 17}
-  155: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  156: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  157: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  158: {shift: 0.625, tau_s: 5.8549, tau_w: 0.6047, cluster: 0, n_samples: 26}
-  159: {shift: 0.5, tau_s: 5.8793, tau_w: -0.3288, cluster: 0, n_samples: 26}
-  160: {shift: 0.5, tau_s: 8.2003, tau_w: -1.0372, cluster: 0, n_samples: 30}
-  161: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  162: {shift: 0.5, tau_s: 12.2001, tau_w: 1.9352, cluster: 0, n_samples: 13}
-  163: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  164: {shift: 0.6127, tau_s: 4.5714, tau_w: -0.7526, cluster: 0, n_samples: 32}
-  165: {shift: 1.441, tau_s: 4.3898, tau_w: 4.0361, cluster: 2, n_samples: 125}
-  166: {shift: 0.9191, tau_s: 3.8311, tau_w: 0.3459, cluster: 1, n_samples: 30}
-  167: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  168: {shift: 0.9711, tau_s: 4.5967, tau_w: 1.4235, cluster: 1, n_samples: 31}
-  169: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  170: {shift: 0.5, tau_s: 6.8682, tau_w: -1.1894, cluster: 0, n_samples: 30}
-  171: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  172: {shift: 0.6219, tau_s: 5.0647, tau_w: -0.2037, cluster: 0, n_samples: 30}
-  173: {shift: 1.1039, tau_s: 5.0810, tau_w: 2.7042, cluster: 2, n_samples: 61}
-  174: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  175: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  176: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  177: {shift: 0.945, tau_s: 3.4492, tau_w: 0.1192, cluster: 1, n_samples: 20}
-  178: {shift: 0.8911, tau_s: 5.3977, tau_w: 1.7440, cluster: 1, n_samples: 244}
-  179: {shift: 0.5, tau_s: 5.8039, tau_w: -0.8763, cluster: 0, n_samples: 39}
-  180: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  181: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  182: {shift: 0.5, tau_s: 7.8988, tau_w: -0.7277, cluster: 0, n_samples: 15}
-  183: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  184: {shift: 0.6508, tau_s: 5.6429, tau_w: 0.5474, cluster: 0, n_samples: 99}
-  185: {shift: 0.5, tau_s: 5.7083, tau_w: -1.1044, cluster: 0, n_samples: 34}
-  186: {shift: 0.5, tau_s: 8.1732, tau_w: 0.0688, cluster: 0, n_samples: 18}
-  187: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  188: {shift: 1.2642, tau_s: 2.5608, tau_w: 1.1459, cluster: 2, n_samples: 30}
-  189: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  190: {shift: 0.5156, tau_s: 4.9763, tau_w: -0.9300, cluster: 0, n_samples: 31}
-  191: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  192: {shift: 0.5, tau_s: 7.6757, tau_w: -0.2373, cluster: 0, n_samples: 37}
-  193: {shift: 0.5, tau_s: 7.6623, tau_w: 0.3597, cluster: 0, n_samples: 48}
-  194: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  195: {shift: 0.8476, tau_s: 5.2673, tau_w: 1.3526, cluster: 1, n_samples: 12}
-  196: {shift: 0.5, tau_s: 7.5143, tau_w: -0.0173, cluster: 0, n_samples: 27}
-  197: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  198: {shift: 0.6957, tau_s: 4.9859, tau_w: 0.1604, cluster: 0, n_samples: 14}
-  199: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  200: {shift: 0.5, tau_s: 5.9097, tau_w: -0.9208, cluster: 0, n_samples: 31}
-  201: {shift: 1.0656, tau_s: 5.4822, tau_w: 2.8755, cluster: 2, n_samples: 98}
-  202: {shift: 0.6071, tau_s: 4.7531, tau_w: -0.6042, cluster: 0, n_samples: 41}
-  203: {shift: 0.8372, tau_s: 5.0647, tau_w: 1.0881, cluster: 1, n_samples: 159}
-  204: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  205: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  206: {shift: 0.9179, tau_s: 5.3096, tau_w: 1.8170, cluster: 1, n_samples: 57}
-  207: {shift: 0.5729, tau_s: 5.2850, tau_w: -0.2777, cluster: 0, n_samples: 33}
-  208: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  209: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  210: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  211: {shift: 1.1871, tau_s: 5.7111, tau_w: 3.8339, cluster: 2, n_samples: 14}
-  212: {shift: 0.8198, tau_s: 3.9261, tau_w: -0.1553, cluster: 1, n_samples: 31}
-  213: {shift: 1.3275, tau_s: 2.0745, tau_w: 1.0394, cluster: 2, n_samples: 58}
-  214: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  215: {shift: 0.7706, tau_s: 5.4925, tau_w: 1.1161, cluster: 1, n_samples: 76}
-  216: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  217: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  218: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  219: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  220: {shift: 0.5, tau_s: 7.2266, tau_w: -0.8822, cluster: 0, n_samples: 19}
-  221: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  222: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  223: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  224: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  225: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  226: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  227: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  228: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  229: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  230: {shift: 0.5, tau_s: 6.9086, tau_w: -0.9153, cluster: 0, n_samples: 30}
-  231: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  232: {shift: 0.964, tau_s: 4.4781, tau_w: 1.2621, cluster: 1, n_samples: 30}
-  233: {shift: 1.1924, tau_s: 4.7076, tau_w: 2.8619, cluster: 2, n_samples: 42}
-  234: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  235: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  236: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  237: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  238: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  239: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  240: {shift: 0.5, tau_s: 7.1088, tau_w: -1.1692, cluster: 0, n_samples: 30}
-  241: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  242: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  243: {shift: 0.6732, tau_s: 5.0442, tau_w: 0.0833, cluster: 0, n_samples: 29}
-  244: {shift: 1.3446, tau_s: 2.9202, tau_w: 1.9881, cluster: 2, n_samples: 42}
-  245: {shift: 1.0127, tau_s: 2.8484, tau_w: -0.0756, cluster: 2, n_samples: 34}
-  246: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  247: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  248: {shift: 0.5, tau_s: 5.8925, tau_w: -0.6633, cluster: 0, n_samples: 30}
-  249: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  250: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  251: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  252: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  253: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  254: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  255: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  256: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  257: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  258: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  259: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  260: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  261: {shift: 0.5, tau_s: 5.8630, tau_w: -0.9151, cluster: 0, n_samples: 29}
-  262: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  263: {shift: 0.7313, tau_s: 5.0466, tau_w: 0.4346, cluster: 1, n_samples: 32}
-  264: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  265: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  266: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  267: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  268: {shift: 0.5, tau_s: 5.4003, tau_w: -1.2766, cluster: 0, n_samples: 30}
-  269: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  270: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  271: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  272: {shift: 1.0028, tau_s: 4.4819, tau_w: 1.4987, cluster: 2, n_samples: 30}
-  273: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  274: {shift: 0.5, tau_s: 6.7572, tau_w: 0.2170, cluster: 0, n_samples: 108}
-  275: {shift: 0.5, tau_s: 6.8006, tau_w: -0.5233, cluster: 0, n_samples: 56}
-  276: {shift: 0.6204, tau_s: 6.1300, tau_w: 0.8525, cluster: 0, n_samples: 20}
-  277: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  278: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  279: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  280: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  281: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  282: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  283: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  284: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  285: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  286: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  287: {shift: 0.9164, tau_s: 5.1354, tau_w: 1.6338, cluster: 1, n_samples: 40}
-  288: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  289: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  290: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  291: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  292: {shift: 0.5, tau_s: 12.1699, tau_w: 1.6761, cluster: 0, n_samples: 13}
-  293: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  294: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  295: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  296: {shift: 0.5, tau_s: 6.7683, tau_w: -0.2074, cluster: 0, n_samples: 53}
-  297: {shift: 0.5219, tau_s: 6.7809, tau_w: 0.9121, cluster: 0, n_samples: 57}
-  298: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  299: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  300: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  301: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  302: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  303: {shift: 0.5, tau_s: 6.3102, tau_w: 0.0603, cluster: 0, n_samples: 14}
-  304: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  305: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  306: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  307: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  308: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  309: {shift: 0.8738, tau_s: 6.1148, tau_w: 2.3574, cluster: 1, n_samples: 129}
-  310: {shift: 1.0931, tau_s: 4.1574, tau_w: 1.7157, cluster: 2, n_samples: 14}
-  311: {shift: 1.2133, tau_s: 4.1478, tau_w: 2.4273, cluster: 2, n_samples: 14}
-  312: {shift: 0.5, tau_s: 7.1137, tau_w: -0.1952, cluster: 0, n_samples: 22}
-  313: {shift: 0.6884, tau_s: 7.1147, tau_w: 2.2450, cluster: 0, n_samples: 22}
-  314: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  315: {shift: 0.5, tau_s: 5.8739, tau_w: -0.8709, cluster: 0, n_samples: 23}
-  316: {shift: 0.7744, tau_s: 5.0582, tau_w: 0.7049, cluster: 1, n_samples: 27}
-  317: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  318: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  319: {shift: 1.369, tau_s: 2.1829, tau_w: 1.3967, cluster: 2, n_samples: 21}
-  320: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  321: {shift: 1.294, tau_s: 3.7391, tau_w: 2.5033, cluster: 2, n_samples: 23}
-  322: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  323: {shift: 0.6156, tau_s: 4.7306, tau_w: -0.5758, cluster: 0, n_samples: 30}
-  324: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  325: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  326: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  327: {shift: 0.794, tau_s: 4.5177, tau_w: 0.2817, cluster: 1, n_samples: 32}
-  328: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  329: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  330: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  331: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  332: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  333: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  334: {shift: 0.5, tau_s: 7.7893, tau_w: -0.9106, cluster: 0, n_samples: 15}
-  335: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  336: {shift: 0.5, tau_s: 7.7360, tau_w: -0.4006, cluster: 0, n_samples: 15}
-  337: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  338: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  339: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  340: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  341: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  342: {shift: 0.5, tau_s: 7.7932, tau_w: -0.6652, cluster: 0, n_samples: 12}
-  343: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  344: {shift: 0.5, tau_s: 7.5959, tau_w: -0.5184, cluster: 0, n_samples: 31}
-  345: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  346: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  347: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  348: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  349: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  350: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  351: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  352: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  353: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  354: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  355: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  356: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  357: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  358: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  359: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  360: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  361: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  362: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  363: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  364: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  365: {shift: 0.5, tau_s: 8.7873, tau_w: 0.6020, cluster: 0, n_samples: 13}
-  366: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  367: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  368: {shift: 0.8196, tau_s: 5.1285, tau_w: 1.0458, cluster: 1, n_samples: 14}
-  369: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  370: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  371: {shift: 0.6533, tau_s: 7.7824, tau_w: 2.7021, cluster: 0, n_samples: 22}
-  372: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  373: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  374: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  375: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  376: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  377: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  378: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  379: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  380: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  381: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  382: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  383: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  384: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  385: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  386: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  387: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  388: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  389: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  390: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  391: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  392: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  393: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  394: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  395: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  396: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  397: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  398: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  399: {shift: 1.2351, tau_s: 2.1557, tau_w: 0.5663, cluster: 2, n_samples: 13}
-  400: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  401: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  402: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  403: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  404: {shift: 0.8932, tau_s: 3.8839, tau_w: 0.2429, cluster: 1, n_samples: 15}
-  405: {shift: 1.3249, tau_s: 3.9022, tau_w: 2.8515, cluster: 2, n_samples: 15}
-  406: {shift: 0.9408, tau_s: 3.1796, tau_w: -0.1757, cluster: 1, n_samples: 16}
-  407: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  408: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  409: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  410: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  411: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  412: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  413: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  414: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  415: {shift: 1.0713, tau_s: 3.1978, tau_w: 0.6255, cluster: 2, n_samples: 20}
-  416: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  417: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  418: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  419: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  420: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  421: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  422: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  423: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  424: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  425: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  426: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  427: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  428: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  429: {shift: 0.7792, tau_s: 4.8066, tau_w: 0.4821, cluster: 1, n_samples: 21}
-  430: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  431: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  432: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  433: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  434: {shift: 0.5, tau_s: 7.6102, tau_w: -0.3426, cluster: 0, n_samples: 10}
-  435: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  436: {shift: 0.7631, tau_s: 4.3708, tau_w: -0.0508, cluster: 1, n_samples: 17}
-  437: {shift: 0.7447, tau_s: 4.3539, tau_w: -0.1780, cluster: 1, n_samples: 17}
-  438: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  439: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  440: {shift: 0.5, tau_s: 7.2032, tau_w: 0.0290, cluster: 0, n_samples: 16}
-  441: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  442: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  443: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  444: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  445: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  446: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  447: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  448: {shift: 1.0816, tau_s: 2.5864, tau_w: 0.0763, cluster: 2, n_samples: 21}
-  449: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  450: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  451: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  452: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  453: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  454: {shift: 0.9745, tau_s: 5.5857, tau_w: 2.4328, cluster: 1, n_samples: 19}
-  455: {shift: 0.8034, tau_s: 5.6140, tau_w: 1.4345, cluster: 1, n_samples: 19}
-  456: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  457: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  458: {shift: 0.9632, tau_s: 3.1132, tau_w: -0.1075, cluster: 1, n_samples: 19}
-  459: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  460: {shift: 0.7145, tau_s: 6.3437, tau_w: 1.6307, cluster: 1, n_samples: 13}
-  461: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  462: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  463: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  464: {shift: 0.5, tau_s: 6.0452, tau_w: -1.2562, cluster: 0, n_samples: 15}
-  465: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  466: {shift: 0.8011, tau_s: 6.4844, tau_w: 2.2910, cluster: 1, n_samples: 11}
-  467: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  468: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  469: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  470: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  471: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  472: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
-  473: {shift: 0.5, tau_s: null, tau_w: null, cluster: 1, n_samples: 0}
+  0: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  1: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  2: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  3: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  4: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  5: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  6: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  7: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  8: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  9: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  10: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  11: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  12: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  13: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  14: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  15: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  16: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  17: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  18: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  19: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  20: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  21: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  22: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  23: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  24: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  25: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  26: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  27: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  28: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  29: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  30: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  31: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  32: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  33: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  34: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  35: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  36: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  37: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  38: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  39: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  40: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  41: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  42: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  43: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  44: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  45: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  46: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  47: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  48: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  49: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  50: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  51: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  52: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  53: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  54: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  55: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  56: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  57: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  58: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  59: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  60: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  61: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  62: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  63: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  64: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  65: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  66: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  67: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  68: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  69: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  70: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  71: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  72: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  73: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  74: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  75: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  76: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  77: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  78: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  79: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  80: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  81: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  82: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  83: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  84: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  85: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  86: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  87: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  88: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  89: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  90: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  91: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  92: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  93: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  94: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  95: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  96: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  97: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  98: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  99: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  100: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  101: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  102: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  103: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  104: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  105: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  106: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  107: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  108: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  109: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  110: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  111: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  112: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  113: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  114: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  115: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  116: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  117: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  118: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  119: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  120: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  121: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  122: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  123: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  124: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  125: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  126: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  127: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  128: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  129: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  130: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  131: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  132: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  133: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  134: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  135: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  136: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  137: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  138: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  139: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  140: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  141: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  142: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  143: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  144: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  145: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  146: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  147: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  148: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  149: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  150: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  151: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  152: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  153: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  154: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  155: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  156: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  157: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  158: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  159: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  160: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  161: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  162: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  163: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  164: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  165: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  166: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  167: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  168: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  169: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  170: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  171: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  172: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  173: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  174: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  175: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  176: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  177: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  178: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  179: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  180: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  181: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  182: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  183: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  184: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  185: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  186: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  187: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  188: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  189: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  190: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  191: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  192: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  193: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  194: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  195: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  196: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  197: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  198: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  199: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  200: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  201: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  202: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  203: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  204: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  205: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  206: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  207: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  208: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  209: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  210: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  211: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  212: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  213: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  214: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  215: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  216: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  217: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  218: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  219: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  220: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  221: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  222: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  223: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  224: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  225: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  226: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  227: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  228: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  229: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  230: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  231: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  232: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  233: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  234: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  235: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  236: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  237: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  238: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  239: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  240: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  241: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  242: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  243: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  244: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  245: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  246: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  247: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  248: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  249: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  250: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  251: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  252: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  253: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  254: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  255: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  256: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  257: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  258: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  259: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  260: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  261: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  262: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  263: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  264: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  265: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  266: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  267: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  268: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  269: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  270: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  271: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  272: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  273: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  274: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  275: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  276: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  277: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  278: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  279: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  280: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  281: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  282: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  283: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  284: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  285: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  286: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  287: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  288: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  289: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  290: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  291: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  292: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  293: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  294: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  295: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  296: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  297: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  298: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  299: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  300: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  301: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  302: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  303: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  304: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  305: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  306: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  307: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  308: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  309: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  310: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  311: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  312: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  313: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  314: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  315: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  316: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  317: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  318: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  319: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  320: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  321: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  322: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  323: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  324: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  325: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  326: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  327: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  328: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  329: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  330: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  331: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  332: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  333: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  334: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  335: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  336: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  337: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  338: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  339: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  340: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  341: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  342: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  343: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  344: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  345: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  346: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  347: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  348: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  349: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  350: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  351: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  352: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  353: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  354: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  355: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  356: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  357: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  358: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  359: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  360: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  361: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  362: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  363: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  364: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  365: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  366: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  367: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  368: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  369: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  370: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  371: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  372: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  373: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  374: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  375: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  376: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  377: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  378: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  379: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  380: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  381: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  382: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  383: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  384: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  385: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  386: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  387: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  388: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  389: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  390: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  391: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  392: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  393: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  394: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  395: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  396: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  397: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  398: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  399: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  400: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  401: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  402: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  403: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  404: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  405: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  406: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  407: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  408: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  409: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  410: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  411: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  412: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  413: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  414: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  415: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  416: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  417: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  418: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  419: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  420: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  421: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  422: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  423: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  424: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  425: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  426: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  427: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  428: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  429: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  430: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  431: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  432: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  433: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  434: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  435: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  436: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  437: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  438: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  439: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  440: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  441: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  442: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  443: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  444: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  445: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  446: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  447: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  448: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  449: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  450: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  451: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  452: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  453: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  454: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  455: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  456: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  457: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  458: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  459: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  460: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  461: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  462: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  463: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  464: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  465: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  466: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  467: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  468: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  469: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  470: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  471: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  472: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
+  473: {shift: null, tau_s: null, tau_w: null, gap: null, offset: null, mean: null, std: null, cluster: 1, n_samples: 0}
