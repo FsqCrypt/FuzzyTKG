@@ -70,6 +70,19 @@ class RelationMembership:
 
         self.offsets = np.full(nrelation, np.nan, dtype=np.float32)
 
+        # ---- Normalization params (location + scale per relation) ----
+        self.global_mean = float(params_dict.get('global_mean', 5.0))
+        self.global_std = float(params_dict.get('global_std', 1.5))
+
+        self.cluster_means = []
+        self.cluster_stds = []
+        for c in params_dict.get('clusters', []):
+            self.cluster_means.append(float(c.get('mean', self.global_mean)))
+            self.cluster_stds.append(float(c.get('std', self.global_std)))
+
+        self.means = np.full(nrelation, np.nan, dtype=np.float32)
+        self.stds = np.full(nrelation, np.nan, dtype=np.float32)
+
         for rel_id_str, rparams in params_dict.get('relations', {}).items():
             rid = int(rel_id_str)
             if rid < nrelation:
@@ -77,14 +90,22 @@ class RelationMembership:
                     self.shifts[rid] = float(rparams['shift'])
                 if rparams.get('offset') is not None:
                     self.offsets[rid] = float(rparams['offset'])
+                if rparams.get('mean') is not None:
+                    self.means[rid] = float(rparams['mean'])
+                if rparams.get('std') is not None:
+                    self.stds[rid] = float(rparams['std'])
                 if rparams.get('cluster') is not None:
                     self.cluster_id[rid] = int(rparams['cluster'])
 
         # GPU tensors (lazy init)
         self._shifts_t = None
         self._offsets_t = None
+        self._means_t = None
+        self._stds_t = None
         self._cluster_shifts_t = None
         self._cluster_offsets_t = None
+        self._cluster_means_t = None
+        self._cluster_stds_t = None
         self._cluster_id_t = None
         self._device = None
 
@@ -94,11 +115,17 @@ class RelationMembership:
         self._device = device
         self._shifts_t = torch.from_numpy(self.shifts).to(device)
         self._offsets_t = torch.from_numpy(self.offsets).to(device)
+        self._means_t = torch.from_numpy(self.means).to(device)
+        self._stds_t = torch.from_numpy(self.stds).to(device)
         self._cluster_shifts_t = torch.tensor(self.cluster_shifts, device=device)
         self._cluster_offsets_t = torch.tensor(self.cluster_offsets, device=device)
+        self._cluster_means_t = torch.tensor(self.cluster_means, device=device)
+        self._cluster_stds_t = torch.tensor(self.cluster_stds, device=device)
         self._cluster_id_t = torch.from_numpy(self.cluster_id).long().to(device)
         self._global_shift_t = torch.tensor(self.global_shift, device=device)
         self._global_offset_t = torch.tensor(self.global_offset, device=device)
+        self._global_mean_t = torch.tensor(self.global_mean, device=device)
+        self._global_std_t = torch.tensor(self.global_std, device=device)
 
     def _get_shift_for_rel(self, rel_ids):
         """Return per-relation shift [B], with cluster/global fallback."""
@@ -131,6 +158,38 @@ class RelationMembership:
         fuzzy operators (max/min/product).
         """
         return self._get_shift_for_rel(rel_ids)
+
+    def get_norm_params_for_rel(self, rel_ids):
+        """Return (mean, std) [B] for per-relation score normalization.
+
+        Normalizes each relation's scores to the global reference scale:
+          normalized = (score - mean_r) / std_r * global_std + global_mean
+
+        Fallback: per-relation → cluster → global.
+        """
+        device = rel_ids.device
+        self._ensure_tensors(device)
+
+        mean_r = self._means_t[rel_ids]
+        std_r = self._stds_t[rel_ids]
+
+        # Fallback 1: cluster
+        nan_mask = torch.isnan(mean_r) | torch.isnan(std_r)
+        if nan_mask.any():
+            cid = self._cluster_id_t[rel_ids]
+            valid = (cid >= 0) & (cid < len(self.cluster_means))
+            fb_mask = nan_mask & valid
+            if fb_mask.any():
+                mean_r[fb_mask] = self._cluster_means_t[cid[fb_mask]]
+                std_r[fb_mask] = self._cluster_stds_t[cid[fb_mask]]
+
+        # Fallback 2: global
+        still_nan = torch.isnan(mean_r) | torch.isnan(std_r)
+        if still_nan.any():
+            mean_r[still_nan] = self._global_mean_t
+            std_r[still_nan] = self._global_std_t
+
+        return mean_r, std_r
 
     def _get_offset_for_rel(self, rel_ids):
         """Return per-relation offset [B], with cluster/global fallback.

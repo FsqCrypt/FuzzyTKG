@@ -260,14 +260,15 @@ def query_2i(entity_embeddings: nn.Module,
     scores_2 = query_1p(entity_embeddings=entity_embeddings, predicate_embeddings=predicate_embeddings,
                         queries=queries[:, 2:4], scoring_function=scoring_function)
 
-    # Branch-level per-relation shift: make scores comparable across relations
-    # before max/min combination (Module 1: cross-relation score comparability).
+    # Branch-level per-relation normalization: (score - mean_r)/std_r * global_std + global_mean.
+    # Normalizes both location AND scale for true cross-relation score comparability
+    # before max/min. Shift-only is insufficient — std varies 8.5x across relations.
     if myglobal.FS_PARAMS.use_rel_memb:
         rel_memb = myglobal.FS_PARAMS.REL_MEMB
-        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])  # [B]
-        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])  # [B]
-        scores_1 = scores_1 - shift_1.unsqueeze(1)
-        scores_2 = scores_2 - shift_2.unsqueeze(1)
+        mean_1, std_1 = rel_memb.get_norm_params_for_rel(queries[:, 1])
+        mean_2, std_2 = rel_memb.get_norm_params_for_rel(queries[:, 3])
+        scores_1 = (scores_1 - mean_1.unsqueeze(1)) / std_1.unsqueeze(1) * rel_memb.global_std + rel_memb.global_mean
+        scores_2 = (scores_2 - mean_2.unsqueeze(1)) / std_2.unsqueeze(1) * rel_memb.global_std + rel_memb.global_mean
 
     M = torch.maximum(scores_1, scores_2)
     m = torch.minimum(scores_1, scores_2)
@@ -303,16 +304,15 @@ def query_3i(entity_embeddings: nn.Module,
     scores_3 = query_1p(entity_embeddings=entity_embeddings, predicate_embeddings=predicate_embeddings,
                         queries=queries[:, 4:6], scoring_function=scoring_function)
 
-    # Branch-level per-relation shift: make scores comparable across relations
-    # before sort/max/min combination.
+    # Branch-level per-relation normalization (location + scale).
     if myglobal.FS_PARAMS.use_rel_memb:
         rel_memb = myglobal.FS_PARAMS.REL_MEMB
-        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])  # [B]
-        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])  # [B]
-        shift_3 = rel_memb.get_shift_for_rel(queries[:, 5])  # [B]
-        scores_1 = scores_1 - shift_1.unsqueeze(1)
-        scores_2 = scores_2 - shift_2.unsqueeze(1)
-        scores_3 = scores_3 - shift_3.unsqueeze(1)
+        mean_1, std_1 = rel_memb.get_norm_params_for_rel(queries[:, 1])
+        mean_2, std_2 = rel_memb.get_norm_params_for_rel(queries[:, 3])
+        mean_3, std_3 = rel_memb.get_norm_params_for_rel(queries[:, 5])
+        scores_1 = (scores_1 - mean_1.unsqueeze(1)) / std_1.unsqueeze(1) * rel_memb.global_std + rel_memb.global_mean
+        scores_2 = (scores_2 - mean_2.unsqueeze(1)) / std_2.unsqueeze(1) * rel_memb.global_std + rel_memb.global_mean
+        scores_3 = (scores_3 - mean_3.unsqueeze(1)) / std_3.unsqueeze(1) * rel_memb.global_std + rel_memb.global_mean
 
     scores_tensor = torch.vstack([scores_1, scores_2, scores_3])
     sorted_scores = torch.sort(scores_tensor, dim=0, descending=True).values
@@ -407,12 +407,13 @@ def query_pi(entity_embeddings: nn.Module,
     M2 = torch.max(scores_2)
     scores_1 = scores_1*M2/M1
 
-    # Branch-level per-relation shift for the 1p branch only.
-    # Path branch (scores_1) is skipped: 1p-derived shifts don't apply to
+    # Branch-level per-relation normalization for the 1p branch only.
+    # Path branch (scores_1) is skipped: 1p-derived params don't apply to
     # 2p path score distributions (same rationale as negation_path in pni).
     if myglobal.FS_PARAMS.use_rel_memb:
-        shift_2 = myglobal.FS_PARAMS.REL_MEMB.get_shift_for_rel(queries[:, 4])
-        scores_2 = scores_2 - shift_2.unsqueeze(1)
+        rel_memb = myglobal.FS_PARAMS.REL_MEMB
+        mean_2, std_2 = rel_memb.get_norm_params_for_rel(queries[:, 4])
+        scores_2 = (scores_2 - mean_2.unsqueeze(1)) / std_2.unsqueeze(1) * rel_memb.global_std + rel_memb.global_mean
 
     M = torch.maximum(scores_1, scores_2)
     m = torch.minimum(scores_1, scores_2)
@@ -446,14 +447,13 @@ def query_2u_dnf(entity_embeddings: nn.Module,
     scores_2 = query_1p(entity_embeddings=entity_embeddings, predicate_embeddings=predicate_embeddings,
                         queries=queries[:, 2:4], scoring_function=scoring_function)
 
-    # Branch-level per-relation shift: make scores comparable across relations
-    # before max/min/union combination.
+    # Branch-level per-relation normalization (location + scale).
     if myglobal.FS_PARAMS.use_rel_memb:
         rel_memb = myglobal.FS_PARAMS.REL_MEMB
-        shift_1 = rel_memb.get_shift_for_rel(queries[:, 1])  # [B]
-        shift_2 = rel_memb.get_shift_for_rel(queries[:, 3])  # [B]
-        scores_1 = scores_1 - shift_1.unsqueeze(1)
-        scores_2 = scores_2 - shift_2.unsqueeze(1)
+        mean_1, std_1 = rel_memb.get_norm_params_for_rel(queries[:, 1])
+        mean_2, std_2 = rel_memb.get_norm_params_for_rel(queries[:, 3])
+        scores_1 = (scores_1 - mean_1.unsqueeze(1)) / std_1.unsqueeze(1) * rel_memb.global_std + rel_memb.global_mean
+        scores_2 = (scores_2 - mean_2.unsqueeze(1)) / std_2.unsqueeze(1) * rel_memb.global_std + rel_memb.global_mean
 
     M = torch.maximum(scores_1, scores_2)
     m = torch.minimum(scores_1, scores_2)
