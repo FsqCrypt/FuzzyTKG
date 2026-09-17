@@ -2108,3 +2108,291 @@ feat/branch-shift-universal-3value  ← 分支级 Shift + 通用三值 ★ 当�
 - 终端查询（2i/3i/2u）几乎不变——defuzzification 加权平均保持单调性
 - "全类型 ≥3%" 未达成，根因是 defuzzification 的数学结构而非方法缺陷
 - 下一步：分支级 B-spline 转换——将非线性前移到 max/min 之前，数学论证表明可修复排名反转
+
+
+# Session 10 — 2026-08-02 上午：全指标提取与实验规范建立
+
+## 一、背景
+
+Session 1-9 的实验记录中只追踪了 MRR 指标，但评估代码实际计算了 4 个指标（MRR、HITS@1、HITS@3、HITS@10）。Session 10 从已有日志中提取了完整的四指标数据。
+
+## 二、FB15k-237 CQD — Baseline vs Module 1 全指标对比
+
+Baseline：`log/fb15k-237-cqd.log`（原始代码），Module 1：`feat/branch-shift-universal-3value`
+
+| Query | B-MRR | B-H@1 | B-H@3 | B-H@10 | M1-MRR | M1-H@1 | M1-H@3 | M1-H@10 | Δ MRR | Δ H@1 | Δ H@3 | Δ H@10 |
+|-------|-------|-------|-------|--------|--------|--------|--------|---------|-------|-------|-------|--------|
+| 1p | 0.4670 | 0.3661 | 0.5119 | 0.6721 | 0.4670 | — | — | — | 0% | — | — | — |
+| 2p | 0.1334 | 0.0745 | 0.1367 | 0.2552 | 0.1334 | — | — | — | 0% | — | — | — |
+| 3p | 0.0800 | 0.0429 | 0.0768 | 0.1495 | 0.0800 | — | — | — | 0% | — | — | — |
+| 2i | 0.3466 | 0.2393 | 0.3898 | 0.5621 | 0.3464 | 0.2392 | 0.3902 | 0.5644 | -0.1% | -0.0% | +0.1% | +0.4% |
+| 3i | 0.4832 | 0.3786 | 0.5337 | 0.6902 | 0.4839 | 0.3784 | 0.5357 | 0.6932 | +0.2% | -0.1% | +0.4% | +0.4% |
+| ip | 0.2010 | 0.1336 | 0.2126 | 0.3380 | 0.2049 | 0.1357 | 0.2157 | 0.3424 | +1.9% | +1.6% | +1.5% | +1.3% |
+| pi | 0.2725 | 0.1832 | 0.3002 | 0.4533 | 0.2749 | 0.1857 | 0.3020 | 0.4551 | +0.9% | +1.4% | +0.6% | +0.4% |
+| 2u | 0.1709 | 0.1060 | 0.1771 | 0.3029 | 0.1717 | 0.1068 | 0.1786 | 0.3017 | +0.5% | +0.8% | +0.8% | -0.4% |
+| up | 0.1111 | 0.0596 | 0.1123 | 0.2111 | 0.1139 | 0.0621 | 0.1141 | 0.2141 | +2.5% | +4.2% | +1.6% | +1.4% |
+| 2in | 0.1215 | 0.0645 | 0.1247 | 0.2328 | 0.1220 | 0.0635 | 0.1240 | 0.2375 | +0.4% | -1.5% | -0.6% | +2.0% |
+| 3in | 0.1415 | 0.0749 | 0.1515 | 0.2697 | 0.1602 | 0.0825 | 0.1755 | 0.3093 | +13.2% | +10.3% | +15.8% | +14.7% |
+| inp | 0.0815 | 0.0376 | 0.0780 | 0.1647 | 0.0840 | 0.0390 | 0.0806 | 0.1686 | +3.1% | +3.9% | +3.4% | +2.3% |
+| pin | 0.0789 | 0.0372 | 0.0759 | 0.1567 | 0.0788 | — | — | — | -0.1% | — | — | — |
+| pni | 0.0865 | 0.0379 | 0.0855 | 0.1760 | 0.0866 | 0.0379 | 0.0855 | 0.1760 | 0% | 0% | 0% | 0% |
+
+### 关键发现
+
+**3in**：H@3 提升最大（+15.9%）→ 方法把正确答案从排名 4-10 推进了 Top-3。H@1 也 +10.2%。
+**2in**：H@10 +2.0% 但 H@1 -1.5% → 帮助边界实体（排名 5→10）但不帮助顶部实体。
+**非否定终端（2i/3i/2u）**：四指标全部 ~0%，验证 Session 9 数学边界。
+**链式查询（ip/up）**：四指标均有正向，up H@1 +4.2% 最高。
+
+## 三、实验规范
+
+后续所有实验必须同时报告 MRR、HITS@1、HITS@3、HITS@10 四项指标。
+评估代码（models.py:686-696）已计算全部四指标，零额外成本。
+
+
+# Session 11 — 2026-08-02 下午：Per-Cluster 非线性尝试与失败
+
+## 一、动机
+
+Session 9 证明线性校准无法改善终端 intersection/union。Session 11 尝试两个非线性方向打破 soft-min 单调性：
+1. **Per-Cluster B-spline**：对 3 个 cluster 用不同 B-spline 曲线（不同 threshd/knot），前移到 max/min 之前
+2. **Per-Cluster Threshold**：仅 per-cluster threshd 截断（保留原始分数空间）
+
+## 二、分支管理
+
+```bash
+git checkout feat/branch-shift-universal-3value  # 稳定基线
+git checkout -b feat/per-cluster-bspline
+```
+
+## 三、改动
+
+| 文件 | 内容 |
+|------|------|
+| `src/myglobal.py` | +39 行 — 3 组 cluster B-spline t/c/k/threshd + load 方法 |
+| `src/rel_membership.py` | +50 行 — `get_cluster_for_rel()` + `cal_cluster_bspline()` |
+| `src/discrete_cqd.py` | query_2i/3i/2u_dnf/pi: 分支级 cluster B-spline → 后改为 threshold |
+| `src/discrete_qto.py` | 同上（QTO backbone）|
+| `main.py` | +2 行 — 加载 cluster params |
+| `scripts/fit_cluster_bspline.py` | 新文件 — 按 cluster 拟合 B-spline |
+| `params/FB15k-237_CQD_cluster_bspline_params.yml` | 初始参数：Easy threshd=5.0, Medium=4.7, Hard=3.5 |
+
+## 四、实验 1：Per-Cluster B-spline（B-spline 前移）
+
+在每个分支 shift 后、max/min 前，将分数通过 per-cluster B-spline 映射到 membership [0,1]。
+res_tensor 值也相应在 membership 空间，直接用作 defuzzification 权重（跳过 cal_membership3）。
+
+**结果**：
+
+| Query | Baseline | B-spline | Δ |
+|-------|----------|----------|---|
+| 2i | 0.3466 | 0.3205 | **-7.5%** |
+
+**崩溃。** 根因：B-spline 将分数从 [0-16] 压缩到 [0-1]，后续 max/min/soft-min/defuzzification 在 membership 空间的行为与原始分数空间完全不同。membership 空间的最大值 < 0.6，soft-min 后 < 0.3，加权平均几乎失去区分力。
+
+与 Session 9 的 branch B-spline 失败模式完全一致。
+
+## 五、实验 2：Per-Cluster Threshold（仅 threshd 截断）
+
+改为保留原始分数空间，仅在 branch level 用 per-cluster threshd 做非线性零化：
+- Easy cluster (0): threshd=5.0
+- Medium cluster (1): threshd=4.7（保持兼容）
+- Hard cluster (2): threshd=3.5（低阈值 → 中等分数存活）
+
+分数高于 threshd 保持原值，低于 threshd 归零。后续流程不变（cal_membership3 照常）。
+
+```python
+th_1 = cluster_threshd[cid_1]
+scores_1 = torch.where(scores_1 >= th_1, scores_1, torch.zeros_like(scores_1))
+```
+
+**结果**：
+
+| Query | Baseline | Threshold | Δ |
+|-------|----------|-----------|---|
+| **2i** | 0.3466 | 0.3360 | **-3.1%** |
+| **3i** | 0.4832 | 0.4614 | **-4.5%** |
+| **2u** | 0.1709 | 0.1686 | **-1.4%** |
+
+**三个终端查询全部下降。** 比 B-spline 版本好（-3~-5% vs -7.5%），但仍是负向。
+
+## 六、根因分析
+
+两个非线性尝试都指向同一个结论：
+
+> **在 max/min 之前对 branch score 做硬截断（B-spline 映射或 threshd 零化），对 intersection/union 是有害的。**
+> 这些算子需要完整的分数分布来正确选择 M 和 m。截断破坏了分数信息，导致 max/min 选择错误。
+
+Session 9 的结论需要扩展：
+- 线性校准：无效（数学证明）
+- 硬截断式非线性（B-spline 映射、threshold 零化）：**有害**（实验证明）
+
+## 七、下一步：Alpha-adaptation
+
+改变**算子的参数**而非算子的输入。alpha 直接控制 soft-min 的倾斜度：
+
+```python
+α = α_base + (1 - reliability) × 0.3
+# 不可靠 relation pair → α 更大 → 更接近严格 min → 更保守
+```
+
+alpha 在 soft-min 公式 `res = (1-α)×M + α×m` 中——改变的是算子行为而非输入分数。
+不受"线性变换保持排序"的限制。
+
+改动量约 50 行，仅修改 `query_2i/3i/pi` 中的 alpha 计算。
+
+## 八、分支状态（Session 11 更新）
+
+```
+master                              ← 原始基线
+feat/branch-shift-universal-3value  ← ★ 当前稳定基线 (Session 8)
+feat/per-cluster-bspline            ← Per-Cluster B-spline + Threshold [已归档，无效]
+  → feat/alpha-adaptation           ← 下一步：算子参数自适应
+```
+
+**Session 11 关键教训**：
+- Per-Cluster B-spline 前移 → -7.5%（membership 空间破坏 score scale）
+- Per-Cluster threshold → -3~-5%（硬截断破坏分数信息）
+- 任何在 max/min 前改变分数值的操作都是有害的
+- 突破方向应为改变算子参数（alpha）而非输入分数
+
+
+# Session 12 — 2026-08-15：全面转向时态知识图谱（TKG）
+
+## 一、战略决定
+
+**从本 Session 起，项目全面转向时态知识图谱（Temporal Knowledge Graph, TKG）。**
+
+静态 KG 阶段（Session 1-11）的实验成果全部保留为方法机制，但数据、LP 模型、实验基线、论文叙事全面迁移到时态场景。
+
+### 1.1 转向动机
+
+1. **时态引入新的分数不可比维度**：静态 KG 的问题是"不同 relation 分数不可比"；TKG 额外引入"同一 relation 在不同时间段的分数也不可比"（1990 年数据稀疏普遍低分，2020 年数据密集普遍高分）。原有校准创新点自动升级，价值变大。
+2. **查询计划优化（数据库类比）在时态下更扎实**：时间约束天然产生选择性差异（`1p(h, r, ?, 1990)` 可能只剩 500 个实体有分数 vs 2020 年 8000 个），数据库"谓词下推 / 驱动表选择"的类比完全成立。
+3. **时态 CQA 竞争少**：静态 CQA 社区成熟（CQD/QTO/BetaE/FuzzSys），时态 CQA 尚在早期。
+4. **TFLEX（NeurIPS 2023）已铺路**：时态版模糊逻辑 CQA 已存在，数据集与查询集公开，直接可对接。
+
+## 二、创新点的映射：三个创新点全部保留并升级
+
+| 创新点 | 静态版（Session 1-11） | 时态版升级 |
+|--------|----------------------|-----------|
+| 1. 关系感知（分数可比性校准） | 不同 relation 分数不可比 → per-relation shift | **同一 relation 跨时间分数也不可比 → per-(relation, time_bucket) shift**。统计从"按关系"变"按关系+时间段" |
+| 2. 三值隶属分解（Fractional Penalty） | 不可靠 relation 减轻惩罚 → offset | 机制零改动。时态数据判断更不可靠，三值更有用武之地 |
+| 3. 查询结构感知（Query-type scaling） | 按查询类型打折 | 机制不变。多了时间算子后查询结构更多样 |
+| 4.（新）时态查询计划优化 | 计划选择概念（Session 8-11 讨论） | **升格为主创新点**：时间约束的位置（叶子 vs 根）改变模糊推理结果 → 时间约束下推不等价性 → 计划选择器 |
+
+### 2.1 主创新点：时态模糊查询计划优化
+
+```
+查询: "1990年前出生的人 AND 2000年后拍过喜剧片的人"
+
+Plan A: 先模糊交集，再对结果施加时间约束
+Plan B: 每个分支先施加时间约束，再做模糊交集
+
+SQL 中等价（谓词下推保语义），模糊 CQA 中不等价：
+时间约束改变分数分布 → 改变 B-spline membership → 改变 fuzzy intersection 结果
+```
+
+**理论贡献**：时间约束是不可交换的模糊算子（下推不等价性定理）。
+**方法贡献**：基于 (relation, time) 选择性的计划选择器。
+**类比**：数据库谓词下推 + 驱动表选择——reviewer 一听就懂。
+
+## 三、调研结论（2026-08-15）
+
+### 3.1 CQD 不能直接使用，但框架 LP-agnostic
+
+- CQD 评分函数是 `score(h, r, t)`，无时间输入 → 不能直接处理 `(h, r, t, timestamp)` 四元组
+- FuzzSys 框架只依赖 `[B, N]` 分数矩阵 → 换 LP 后模糊推理层、校准层零改动
+- 替代 LP 模型：
+  - **TComplEx** (ICLR 2020)：最常用时态 LP 基线，简单、训练快
+  - **TNTComplEx** (ICLR 2020)：增强版，有公开代码
+  - **ChronoR** (AAAI 2021)：旋转式时态嵌入
+- ICEWS14 仅 6.9k 实体 / 73k 训练三元组 → 单卡几小时可训完，**不需要找现成 checkpoint，自己训最省事**
+
+### 3.2 数据集：TFLEX 已发布，格式与 FuzzSys 几乎一致
+
+TFLEX（NeurIPS 2023，arXiv:2205.14307）是时态版模糊逻辑 CQA，发布了三数据集的复杂时态查询集：
+
+| 数据集 | 链接 | 规模 |
+|--------|------|------|
+| ICEWS14 | HuggingFace `linxy/ICEWS14` | 6.9k 实体 / 230 关系 / 365 时间戳 |
+| ICEWS05-15 | HuggingFace `linxy/ICEWS05_15` | 10k 实体 / 251 关系 / 2005-2015 |
+| GDELT | HuggingFace `linxy/GDELT` | 新闻事件，规模更大 |
+
+查询格式（与当前 test-queries.pkl 几乎同构）：
+
+```python
+{
+  'query_name': 'Pe_aPt',
+  'query': [6291, 372, 5683, 283, 5264],   # 实体/关系/时间戳 ID 序列
+  'answer': [1077],
+  'easy_answer': [],
+}
+```
+
+TFLEX 代码：github.com/LinXueyuanStdio/TFLEX（Apache-2.0）
+
+### 3.3 TFLEX 概况（主基线）
+
+- 首个时态复杂查询嵌入框架，用 **4 部分嵌入** (q_ef, q_el, q_tf, q_tl)：实体部分处理 FOL 运算，时间戳部分处理时间运算
+- 逻辑部分用**模糊（向量）逻辑**——与 FuzzSys 同路线，是天然的时态对照
+- 支持 Before / After / Between 三种时间算子 + EPFO 逻辑 + negation
+- 答案类型扩展：不只返回实体集合，还能返回**时间戳集合**
+
+### 3.4 论文关键词清单
+
+| 分组 | 关键词 | 代表论文 |
+|------|--------|---------|
+| 时态复杂查询（核心对标） | temporal complex query answering | TFLEX (NeurIPS 2023), TemporalQuery (NeurIPS 2022), TimeTravel |
+| 时态 LP 模型 | temporal KG completion / TKGC embedding | TComplEx, TNTComplEx (ICLR 2020), ChronoR (AAAI 2021) |
+| 汇总列表 | — | Awesome-TKGC (github.com/jiapuwang), Awesome-KG-Reasoning (wangsiwei2010) |
+| 静态 CQA 根基 | — | FuzzSys, CQD, QTO, BetaE, FuzzQE |
+| ⚠️ 不要搜混 | temporal KG question answering (NL QA) | CronQuestions, TGQA, MultiTQ, CR-TKGQA——LLM 自然语言问答，路线不同 |
+
+## 四、迁移步骤（Step 1-7）
+
+```
+Step 1: 下载 TFLEX 的 ICEWS14 查询集 + 数据（HuggingFace load_dataset）
+Step 2: 训练 TComplEx（或 TNTComplEx）作为 LP
+        ICEWS14 小，单卡几小时，不需要现成 checkpoint
+Step 3: 改 query_1p 签名
+        (h, r) → (h, r, timestamp)，内部调用 TComPlEx 评分
+        输出仍是 [B, N] 分数矩阵 → 其余代码零改动
+Step 4: 查询函数从 14 种扩展到时态版
+        照 TFLEX 的查询定义实现 Before/After/Between 时间算子
+Step 5: 重跑 compute_rel_stats
+        新验证集上收集 per-relation 统计
+        （升级点：按时间段分桶 → per-(relation, time_bucket)）
+Step 6: 三个创新点原样搬入
+        shift / offset / query-type scaling 机制不变
+Step 7: 对比实验
+        基线：TFLEX（同是模糊逻辑，公平对标）
+        我们：TFLEX + 关系感知校准 + 三值 + 计划选择
+```
+
+## 五、差异化定位
+
+TFLEX 证明了模糊逻辑能处理时态查询，但它**没有**：
+- per-relation / per-(relation, time) 校准（分数不可比问题）
+- 三值 Fractional Penalty
+- 查询计划选择（时间约束放在哪一步）
+
+把 FuzzSys 的校准机制搬到 TFLEX 框架上 = 直接形成差异化。论文定位：
+
+> TFLEX 证明了模糊逻辑能处理时态查询；我们发现时态引入了新的分数不可比问题（同一关系跨时间漂移），并提出 (relation, time) 感知校准 + 时态查询计划选择。
+
+## 六、风险与注意事项
+
+| 风险 | 严重度 | 应对 |
+|------|:---:|------|
+| 时态 CQA benchmark 评估协议不统一 | 高 | 以 TFLEX 协议为准（它已定义查询集与评估方式） |
+| 时间约束下推"不等价性"实验差异可能不明显 | 中 | 先做 Oracle 实验验证计划空间上限，再决定投入 |
+| 静态 KG 11 个 Session 实验作废 | 低 | 机制复用，实验重跑但不用重设计 |
+| 导师/评审是否认可换方向 | 中 | 叙事上定位为"升级"而非"换方向" |
+
+## 七、下一步
+
+1. **Step 1-3 先行**：下载 ICEWS14 + 训 TComplEx + 跑通一个时态 1p 查询
+2. **确认分数分布与时间的关系**：同一 relation 跨时间段的 tau_s 漂移幅度——这个数据直接决定"时间维度校准"的必要性和收益预期
+3. **调研 TFLEX 的查询类型定义**：Before/After/Between 的算子语义，确定 query_1p 签名改法
+4. **分支规划**：建议新分支 `feat/tkg-migration`，从 `feat/alpha-adaptation` 或 master 分出待定

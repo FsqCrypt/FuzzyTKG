@@ -1,4 +1,9 @@
-KG_data/
+# 数据与归档(大文件,不入库)
+data/legacy/
+data/tkg/
+archive/
+# 第三方仓库自带的数据集(392M,与 data/tkg/ 重复,不入库)
+FuzzSys-CQA/third_party/TFLEX/data/
 __pycache__/
 *.pyc
 .idea/
