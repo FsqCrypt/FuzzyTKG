@@ -217,7 +217,17 @@ def query_2i(entity_embeddings: nn.Module,
     M = torch.maximum(scores_1, scores_2)
     m = torch.minimum(scores_1, scores_2)
 
-    a = torch.FloatTensor(list(myglobal.FS_PARAMS.ALPHA_I_L)).unsqueeze(-1).cuda()
+    # Alpha-adaptation (Module 2): per-query alpha based on relation reliability.
+    alpha_base = torch.FloatTensor(list(myglobal.FS_PARAMS.ALPHA_I_L))  # [3]
+    if myglobal.FS_PARAMS.use_rel_memb:
+        rel_r1 = rel_memb.get_reliability_for_rel(queries[:, 1])  # [B]
+        rel_r2 = rel_memb.get_reliability_for_rel(queries[:, 3])  # [B]
+        rel_pair = torch.minimum(rel_r1, rel_r2)
+        alpha_shift = (rel_pair - 0.5) * 0.3  # [B]
+        a = alpha_base.unsqueeze(1).cuda() + alpha_shift.unsqueeze(0)  # [3, B]
+        a = torch.clamp(a, 0.0, 1.0).unsqueeze(2)  # [3, B, 1]
+    else:
+        a = alpha_base.unsqueeze(1).unsqueeze(1).cuda()  # [3, 1, 1]
 
     res_tensor = (1. - a) * M + a * m
 
@@ -261,10 +271,21 @@ def query_3i(entity_embeddings: nn.Module,
 
     (a_1, a_2, a_3) = myglobal.FS_PARAMS.ALPHA_I_L
 
+    # Alpha-adaptation (Module 2): per-query alpha shift for 3-branch intersection.
+    if myglobal.FS_PARAMS.use_rel_memb:
+        rel_r1 = rel_memb.get_reliability_for_rel(queries[:, 1])
+        rel_r3 = rel_memb.get_reliability_for_rel(queries[:, 3])
+        rel_r5 = rel_memb.get_reliability_for_rel(queries[:, 5])
+        rel_avg = (rel_r1 + rel_r3 + rel_r5) / 3.0  # [B]
+        alpha_shift = (rel_avg - 0.5) * 0.3  # [B]
+        a_1 = (a_1 + alpha_shift).clamp(0.0, 1.0)  # [B]
+        a_2 = (a_2 + alpha_shift).clamp(0.0, 1.0)  # [B]
+        a_3 = (a_3 + alpha_shift).clamp(0.0, 1.0)  # [B]
+
     res_1 = (((1. - a_1) * M + a_1 * A) + ((1. - a_1) * M + a_1 * m) + ((1. - a_1) * A + a_1 * m))/3
-    
+
     res_2 = (((1. - a_2) * M + a_2 * A) + ((1. - a_2) * M + a_2 * m) + ((1. - a_2) * A + a_2 * m))/3
-    
+
     res_3 = (((1. - a_3) * M + a_3 * A) + ((1. - a_3) * M + a_3 * m) + ((1. - a_3) * A + a_3 * m))/3
 
     res_tensor = torch.vstack([res_1, res_2, res_3])

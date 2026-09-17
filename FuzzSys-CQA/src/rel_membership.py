@@ -132,6 +132,18 @@ class RelationMembership:
         """
         return self._get_shift_for_rel(rel_ids)
 
+    def get_reliability_for_rel(self, rel_ids):
+        """Return reliability [B] ∈ [0,1] for each relation.
+
+        Derived from per-relation shift: larger shift = less reliable.
+        shift range [0.5, 1.5] → reliability [1.0, 0.0].
+        Used for alpha-adaptation in intersection soft-min.
+        """
+        shift = self._get_shift_for_rel(rel_ids)
+        # Normalize: shift 0.5 (easy) → 1.0, shift 1.5 (hard) → 0.0
+        reliability = 1.0 - (shift - 0.5) / 1.0
+        return torch.clamp(reliability, 0.0, 1.0)
+
     def _get_offset_for_rel(self, rel_ids):
         """Return per-relation offset [B], with cluster/global fallback.
 

@@ -1,0 +1,35 @@
+# Per-cluster B-spline membership params for FB15k-237 (CQD)
+# Initial version: derived from global B-spline with per-cluster threshd.
+# Run scripts/fit_cluster_bspline.py to fit proper per-cluster curves.
+
+nrelation: 474
+n_clusters: 3
+clusters:
+- id: 0
+  name: Easy
+  threshd: 5.0
+  k: 3
+  t: &id001 [0.0, 0.0, 0.0, 0.0, 2.7592015200000004, 5.38980138, 8.149002899999997,
+    10.908204419999995, 13.667405939999991, 16.426607459999992, 16.426607459999992,
+    16.426607459999992, 16.426607459999992]
+  c: &id002 [-0.02586617862290655, 0.08408684217042904, -0.13021197201483875, 0.11099008757004604,
+    1.2219496043193165, 0.8803345325667445, 1.0901685000095143, 0.9488171779224577,
+    1.015261435827933, 0.0, 0.0, 0.0, 0.0]
+  n_relations: 92
+  desc: Reliable relations, strict threshold
+- id: 1
+  name: Medium
+  threshd: 4.7
+  k: 3
+  t: *id001
+  c: *id002
+  n_relations: 338
+  desc: Standard threshold (baseline)
+- id: 2
+  name: Hard
+  threshd: 3.5
+  k: 3
+  t: *id001
+  c: *id002
+  n_relations: 44
+  desc: "Unreliable relations, permissive \u2014 mid scores survive"
