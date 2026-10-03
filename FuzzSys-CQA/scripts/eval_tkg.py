@@ -9,13 +9,20 @@
 评测协议逐条镜像 TFLEX(TFLEX/main_TCQE_TFLEX.py:1227-1264 与
 ComplexTemporalQueryDataloader.py:129-140):
 
-  1. easy 掩码:`if len(easy) >= len(full): easy = {}`,然后 `hard = full − easy`
-  2. 分数矩阵里把 easy 置 -inf
+  1. easy 规则:`if len(easy) >= len(full): easy = {}`(比较对象是 **full**)
+  2. 分数矩阵里把 easy 置 -inf,再 `hard = full − easy`
   3. argsort 降序,取每个 hard 答案的 0-based 位置
   4. MRR 累计 1/(rank+1);hits@k 为 rank < k
 
-注意第 1 步的比较对象是 **full**(TFLEX 的 TestDataset 变量名叫 hard_answer,
-但存的是 full 集合),不是 hard。
+两个易错点,都逐字对齐 TFLEX:
+
+- 第 1 步的比较对象是 **full**,不是 hard。TFLEX 的 TestDataset 里那个变量
+  名叫 `hard_answer`,但存的其实是 full 集合
+  (`ComplexTemporalQueryDataloader.py:130-134`)。
+- 规则**同时清空掩码**:TFLEX 先 rebind `easy_answer = set()` 再拿它建
+  `easy_answer_mask`(同文件 132-139 行),所以规则触发时**什么都不掩**,
+  hard 就是 full。这不是可忽略的边界:ICEWS14 上 e3i 有 45.4% 的查询、
+  aPt/bPt/between 有 100% 触发该规则。
 """
 from __future__ import annotations
 
@@ -23,7 +30,7 @@ import argparse
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Sequence, Set
+from typing import Dict, List, Sequence, Set, Tuple
 
 import torch
 from torch import Tensor
@@ -33,6 +40,7 @@ sys.path.insert(0, str(_HERE.parent / "src"))
 
 import tkg_data as D  # noqa: E402
 from tcomplex import TComplExScorer  # noqa: E402
+from tkg_ops import NaiveOperators  # noqa: E402
 
 # 数据集 -> checkpoint 目录名(目录用连字符,数据集键用下划线,故需映射)
 CKPT_DIR = {
@@ -102,11 +110,15 @@ class Metric:
         }
 
 
-def hard_answers(full: Set[int], easy: Set[int]) -> Set[int]:
-    """镜像 TFLEX 的 easy/hard 切分(比较对象是 full)。"""
+def split_answers(full: Set[int], easy: Set[int]) -> Tuple[Set[int], Set[int]]:
+    """镜像 TFLEX 的 easy/hard 切分,返回 (hard, 用于掩码的 easy)。
+
+    规则 `len(easy) >= len(full)` 同时作用于两者(TFLEX 先 rebind 再建掩码),
+    故触发时返回的掩码也是空集。比较对象是 full,不是 hard。
+    """
     if len(easy) >= len(full):
         easy = set()
-    return full - easy
+    return full - easy, easy
 
 
 # ---------------------------------------------------------------------------
@@ -176,33 +188,68 @@ def run_lp_check(dataset: str, split: str = "test", batch_size: int = 256,
 # query:按题型评测
 # ---------------------------------------------------------------------------
 
-def score_query_type(scorer: TComplExScorer, qs: D.QuerySet,
+def score_batch(ops: NaiveOperators, name: str, qb: Tensor) -> Tensor:
+    """按题型对一批查询出分数矩阵 [b, R]。
+
+    参数位下标与 D.QUERY_TYPES 的类型串一一对应,语义见
+    data/tkg/<DS>/<DS>.py 的 query_structures。
+    """
+    if name == "Pe":
+        return ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2])
+    if name == "Pt":
+        return ops.Pt(qb[:, 0], qb[:, 1], qb[:, 2])
+
+    # 实体多跳:Pe(Pe(e1,r1,t1), r2,t2) → 投影
+    if name == "Pe2":
+        return ops.project(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]), qb[:, 3], qb[:, 4])
+    if name == "Pe3":
+        s = ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2])
+        s = ops.project(s, qb[:, 3], qb[:, 4])
+        return ops.project(s, qb[:, 5], qb[:, 6])
+
+    # 实体交集:And(Pe(e1,r1,t1), Pe(e2,r2,t2)[, Pe(e3,r3,t3)])
+    if name == "e2i":
+        return ops.And(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                       ops.Pe(qb[:, 3], qb[:, 4], qb[:, 5]))
+    if name == "e3i":
+        return ops.And(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                       ops.Pe(qb[:, 3], qb[:, 4], qb[:, 5]),
+                       ops.Pe(qb[:, 6], qb[:, 7], qb[:, 8]))
+
+    # 时间交集:TimeAnd(Pt(e1,r1,e2), Pt(e3,r2,e4)[, Pt(e5,r3,e6)])
+    if name == "t2i":
+        return ops.And(ops.Pt(qb[:, 0], qb[:, 1], qb[:, 2]),
+                       ops.Pt(qb[:, 3], qb[:, 4], qb[:, 5]))
+    if name == "t3i":
+        return ops.And(ops.Pt(qb[:, 0], qb[:, 1], qb[:, 2]),
+                       ops.Pt(qb[:, 3], qb[:, 4], qb[:, 5]),
+                       ops.Pt(qb[:, 6], qb[:, 7], qb[:, 8]))
+
+    raise NotImplementedError(f"{name} 的算子尚未实现(M3)")
+
+
+# 用了 project 的题型,内存占用随 batch 线性放大,用小批
+_HEAVY = {"Pe2", "Pe3"}
+
+
+def score_query_type(ops: NaiveOperators, qs: D.QuerySet,
                      batch_size: int = 256) -> Metric:
-    """对单个题型出分数矩阵并排名。目前仅支持纯 LP 原子(Pe / Pt)。"""
+    """对单个题型出分数矩阵并排名。"""
     m = Metric()
     q = qs.query
     n = len(qs)
-    n_batch = (n + batch_size - 1) // batch_size
+    bs = min(batch_size, 64) if qs.name in _HEAVY else batch_size
+    n_batch = (n + bs - 1) // bs
 
     with torch.no_grad():
         for bi in range(n_batch):
-            lo, hi = bi * batch_size, min((bi + 1) * batch_size, n)
+            lo, hi = bi * bs, min((bi + 1) * bs, n)
             qb = q[lo:hi]
-
-            if qs.name == "Pe":            # e1, r1, t1 → 实体全表
-                scores = scorer.score_entities(qb[:, 0], qb[:, 1], qb[:, 2])
-            elif qs.name == "Pt":          # e1, r1, e2 → 时间全表
-                scores = scorer.score_times(qb[:, 0], qb[:, 1], qb[:, 2])
-            else:
-                raise NotImplementedError(f"{qs.name} 的算子尚未实现(M2/M3)")
-
-            scores = scores.clone()
+            scores = score_batch(ops, qs.name, qb).clone()
             for i in range(hi - lo):
-                easy = qs.easy[lo + i]
-                full = qs.answers[lo + i]
-                hard = hard_answers(full, easy)
-                if easy:
-                    scores[i, torch.tensor(sorted(easy), dtype=torch.long)] = float("-inf")
+                hard, easy_mask = split_answers(qs.answers[lo + i], qs.easy[lo + i])
+                if easy_mask:
+                    scores[i, torch.tensor(sorted(easy_mask), dtype=torch.long)] = float("-inf")
                 if not hard:
                     continue
                 order = scores[i].argsort(descending=True)
@@ -215,9 +262,15 @@ def score_query_type(scorer: TComplExScorer, qs: D.QuerySet,
 def run_query(dataset: str, split: str = "test",
               types: Sequence[str] | None = None,
               limit_types: int | None = None,
-              limit: int | None = None) -> Dict[str, Dict[str, float]]:
+              limit: int | None = None,
+              batch_size: int = 256,
+              topk: int = 10,
+              calibrate: str = "none") -> Dict[str, Dict[str, float]]:
     scorer = TComplExScorer(checkpoint_path(dataset))
     print(scorer.describe())
+    print(f"朴素算子: top-k 投影 k={topk},校准 calibrate={calibrate}")
+
+    ops = NaiveOperators(scorer, topk=topk, calibrate=calibrate)
 
     qs_all = D.load_queries(dataset, split, types)
     names = [n for n in D.official_types() if n in qs_all]
@@ -232,7 +285,7 @@ def run_query(dataset: str, split: str = "test",
             qs = D.QuerySet(name=qs.name, query=qs.query[:limit], answers=qs.answers[:limit],
                             easy=qs.easy[:limit], is_entity_answer=qs.is_entity_answer)
         try:
-            m = score_query_type(scorer, qs)
+            m = score_query_type(ops, qs, batch_size)
         except NotImplementedError as e:
             print(f"  {name:<18} 跳过 —— {e}")
             continue
@@ -283,6 +336,9 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None, help="每题型取样数(冒烟用)")
     ap.add_argument("--limit-types", type=int, default=None)
     ap.add_argument("--batch-size", type=int, default=256)
+    ap.add_argument("--topk", type=int, default=10, help="多跳投影保留的中间实体数")
+    ap.add_argument("--calibrate", choices=["none", "rank"], default="none",
+                    help="组合前的逐路校准;none=计划里的字面 min(默认)")
     args = ap.parse_args()
 
     if args.mode == "lp-check":
@@ -295,7 +351,8 @@ def main() -> None:
         print("\n对照:已发表 TComplEx ICEWS14 filtered MRR ≈ 52.0 (头尾平均)")
     else:
         types = args.types.split(",") if args.types else None
-        res = run_query(args.dataset, args.split, types, args.limit_types, args.limit)
+        res = run_query(args.dataset, args.split, types, args.limit_types, args.limit,
+                        args.batch_size, args.topk, args.calibrate)
         print_table(res)
 
 
