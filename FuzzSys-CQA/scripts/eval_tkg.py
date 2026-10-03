@@ -225,11 +225,137 @@ def score_batch(ops: NaiveOperators, name: str, qb: Tensor) -> Tensor:
                        ops.Pt(qb[:, 3], qb[:, 4], qb[:, 5]),
                        ops.Pt(qb[:, 6], qb[:, 7], qb[:, 8]))
 
-    raise NotImplementedError(f"{name} 的算子尚未实现(M3)")
+    # 时间多跳
+    if name == "aPt":
+        return ops.after(ops.Pt(qb[:, 0], qb[:, 1], qb[:, 2]))
+    if name == "bPt":
+        return ops.before(ops.Pt(qb[:, 0], qb[:, 1], qb[:, 2]))
+    if name == "Pt_sPe":        # Pt(Pe(e1,r1,t1), r2, e2)
+        return ops.project_time(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                qb[:, 3], qb[:, 4], "h")
+    if name == "Pt_oPe":        # Pt(e1, r1, Pe(e2,r2,t1))
+        return ops.project_time(ops.Pe(qb[:, 2], qb[:, 3], qb[:, 4]),
+                                qb[:, 1], qb[:, 0], "o")
+    if name == "Pe_Pt":         # Pe(e1, r1, Pt(e2,r2,e3))
+        return ops.project_via_time(ops.Pt(qb[:, 2], qb[:, 3], qb[:, 4]),
+                                    qb[:, 0], qb[:, 1])
+    if name == "Pe_aPt":        # Pe(e1, r1, after(Pt(e2,r2,e3)))
+        return ops.project_via_time(ops.after(ops.Pt(qb[:, 2], qb[:, 3], qb[:, 4])),
+                                    qb[:, 0], qb[:, 1])
+    if name == "Pe_bPt":        # Pe(e1, r1, before(Pt(e2,r2,e3)))
+        return ops.project_via_time(ops.before(ops.Pt(qb[:, 2], qb[:, 3], qb[:, 4])),
+                                    qb[:, 0], qb[:, 1])
+    if name == "Pt_sPe_Pt":     # Pt(Pe(s1, r1, Pt(s2,r2,o1)), r3, o2)
+        t = ops.Pt(qb[:, 2], qb[:, 3], qb[:, 4])
+        e = ops.project_via_time(t, qb[:, 0], qb[:, 1])
+        return ops.project_time(e, qb[:, 5], qb[:, 6], "h")
+    if name == "Pt_oPe_Pt":     # Pt(s1, r1, Pe(s2, r2, Pt(s3,r3,o1)))
+        t = ops.Pt(qb[:, 4], qb[:, 5], qb[:, 6])
+        e = ops.project_via_time(t, qb[:, 2], qb[:, 3])
+        return ops.project_time(e, qb[:, 1], qb[:, 6], "o")
+
+    # 复合时间交集
+    if name == "e2i_Pe":        # And(Pe(Pe(e1,r1,t1), r2, t2), Pe(e2,r3,t3))
+        return ops.And(ops.project(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                   qb[:, 3], qb[:, 4]),
+                       ops.Pe(qb[:, 5], qb[:, 6], qb[:, 7]))
+    if name == "Pe_e2i":        # Pe(e2i(e1,r1,t1, e2,r2,t2), r3, t3)
+        return ops.project(ops.And(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                   ops.Pe(qb[:, 3], qb[:, 4], qb[:, 5])),
+                           qb[:, 6], qb[:, 7])
+    if name == "Pt_se2i":       # Pt(e2i(e1,r1,t1, e2,r2,t2), r3, e3)
+        return ops.project_time(ops.And(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                        ops.Pe(qb[:, 3], qb[:, 4], qb[:, 5])),
+                                qb[:, 6], qb[:, 7], "h")
+    if name == "Pt_oe2i":       # Pt(e1, r1, e2i(e2,r2,t1, e3,r3,t2))
+        return ops.project_time(ops.And(ops.Pe(qb[:, 2], qb[:, 3], qb[:, 4]),
+                                        ops.Pe(qb[:, 5], qb[:, 6], qb[:, 7])),
+                                qb[:, 1], qb[:, 0], "o")
+    if name == "t2i_Pe":        # TimeAnd(Pt(Pe(e1,r1,t1), r2, e2), Pt(e3,r3,e4))
+        return ops.And(ops.project_time(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                        qb[:, 3], qb[:, 4], "h"),
+                       ops.Pt(qb[:, 5], qb[:, 6], qb[:, 7]))
+    if name == "Pe_t2i":        # Pe(e1, r1, t2i(e2,r2,e3, e4,r3,e5))
+        return ops.project_via_time(ops.And(ops.Pt(qb[:, 2], qb[:, 3], qb[:, 4]),
+                                            ops.Pt(qb[:, 5], qb[:, 6], qb[:, 7])),
+                                    qb[:, 0], qb[:, 1])
+    if name == "Pe_at2i":       # Pe(e1, r1, after(t2i(...)))
+        return ops.project_via_time(ops.after(ops.And(ops.Pt(qb[:, 2], qb[:, 3], qb[:, 4]),
+                                                      ops.Pt(qb[:, 5], qb[:, 6], qb[:, 7]))),
+                                    qb[:, 0], qb[:, 1])
+    if name == "Pe_bt2i":       # Pe(e1, r1, before(t2i(...)))
+        return ops.project_via_time(ops.before(ops.And(ops.Pt(qb[:, 2], qb[:, 3], qb[:, 4]),
+                                                       ops.Pt(qb[:, 5], qb[:, 6], qb[:, 7]))),
+                                    qb[:, 0], qb[:, 1])
+    if name == "between":       # TimeAnd(after(Pt(e1,r1,e2)), before(Pt(e3,r2,e4)))
+        return ops.And(ops.after(ops.Pt(qb[:, 0], qb[:, 1], qb[:, 2])),
+                       ops.before(ops.Pt(qb[:, 3], qb[:, 4], qb[:, 5])))
+
+    # 实体否定
+    if name == "e2i_N":         # And(Pe(e1,r1,t1), Not(Pe(e2,r2,t2)))
+        return ops.And(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                       ops.Not(ops.Pe(qb[:, 3], qb[:, 4], qb[:, 5])))
+    if name == "e3i_N":         # And3(Pe1, Pe2, Not(Pe3))
+        return ops.And(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                       ops.Pe(qb[:, 3], qb[:, 4], qb[:, 5]),
+                       ops.Not(ops.Pe(qb[:, 6], qb[:, 7], qb[:, 8])))
+    if name == "Pe_e2i_Pe_NPe":  # Pe(And(Pe1, Not(Pe2)), r3, t3)
+        return ops.project(ops.And(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                   ops.Not(ops.Pe(qb[:, 3], qb[:, 4], qb[:, 5]))),
+                           qb[:, 6], qb[:, 7])
+    if name == "e2i_PeN":       # And(Pe(Pe1, r2, t2), Not(Pe(e2,r3,t3)))
+        return ops.And(ops.project(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                   qb[:, 3], qb[:, 4]),
+                       ops.Not(ops.Pe(qb[:, 5], qb[:, 6], qb[:, 7])))
+    if name == "e2i_NPe":       # And(Not(Pe(Pe1, r2, t2)), Pe(e2,r3,t3))
+        return ops.And(ops.Not(ops.project(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                           qb[:, 3], qb[:, 4])),
+                       ops.Pe(qb[:, 5], qb[:, 6], qb[:, 7]))
+
+    # 时间否定
+    if name == "t2i_N":         # TimeAnd(Pt1, TimeNot(Pt2))
+        return ops.And(ops.Pt(qb[:, 0], qb[:, 1], qb[:, 2]),
+                       ops.Not(ops.Pt(qb[:, 3], qb[:, 4], qb[:, 5])))
+    if name == "t3i_N":         # TimeAnd3(Pt1, Pt2, TimeNot(Pt3))
+        return ops.And(ops.Pt(qb[:, 0], qb[:, 1], qb[:, 2]),
+                       ops.Pt(qb[:, 3], qb[:, 4], qb[:, 5]),
+                       ops.Not(ops.Pt(qb[:, 6], qb[:, 7], qb[:, 8])))
+    if name == "Pe_t2i_PtPe_NPt":  # Pe(e1, r1, TimeAnd(Pt(Pe(e2,r2,t2), r3, e3), TimeNot(Pt(e4,r4,e5))))
+        inner = ops.And(ops.project_time(ops.Pe(qb[:, 2], qb[:, 3], qb[:, 4]),
+                                         qb[:, 5], qb[:, 6], "h"),
+                        ops.Not(ops.Pt(qb[:, 7], qb[:, 8], qb[:, 9])))
+        return ops.project_via_time(inner, qb[:, 0], qb[:, 1])
+    if name == "t2i_PtN":       # TimeAnd(Pt(Pe(e1,r1,t1), r2, e2), TimeNot(Pt(e3,r3,e4)))
+        return ops.And(ops.project_time(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                        qb[:, 3], qb[:, 4], "h"),
+                       ops.Not(ops.Pt(qb[:, 5], qb[:, 6], qb[:, 7])))
+    if name == "t2i_NPt":       # TimeAnd(TimeNot(Pt(Pe(e1,r1,t1), r2, e2)), Pt(e3,r3,e4))
+        return ops.And(ops.Not(ops.project_time(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                                qb[:, 3], qb[:, 4], "h")),
+                       ops.Pt(qb[:, 5], qb[:, 6], qb[:, 7]))
+
+    # 并集
+    if name == "e2u":           # Or(Pe(e1,r1,t1), Pe(e2,r2,t2))
+        return ops.Or(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                      ops.Pe(qb[:, 3], qb[:, 4], qb[:, 5]))
+    if name == "Pe_e2u":        # Pe(Or(Pe1, Pe2), r3, t3)
+        return ops.project(ops.Or(ops.Pe(qb[:, 0], qb[:, 1], qb[:, 2]),
+                                  ops.Pe(qb[:, 3], qb[:, 4], qb[:, 5])),
+                           qb[:, 6], qb[:, 7])
+    if name == "t2u":           # TimeOr(Pt(e1,r1,e2), Pt(e3,r2,e4))
+        return ops.Or(ops.Pt(qb[:, 0], qb[:, 1], qb[:, 2]),
+                      ops.Pt(qb[:, 3], qb[:, 4], qb[:, 5]))
+    if name == "Pe_t2u":        # Pe(e1, r1, TimeOr(Pt(e2,r2,e3), Pt(e4,r3,e5)))
+        return ops.project_via_time(ops.Or(ops.Pt(qb[:, 2], qb[:, 3], qb[:, 4]),
+                                           ops.Pt(qb[:, 5], qb[:, 6], qb[:, 7])),
+                                    qb[:, 0], qb[:, 1])
+
+    raise NotImplementedError(f"{name} 的算子尚未实现")
 
 
 # 用了 project 的题型,内存占用随 batch 线性放大,用小批
-_HEAVY = {"Pe2", "Pe3"}
+_HEAVY = {"Pe2", "Pe3", "e2i_Pe", "Pe_e2i", "e2i_PeN", "e2i_NPe",
+          "Pe_e2u", "Pe_e2i_Pe_NPe"}
 
 
 def score_query_type(ops: NaiveOperators, qs: D.QuerySet,

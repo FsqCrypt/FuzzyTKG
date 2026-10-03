@@ -153,6 +153,17 @@ class NaiveOperators:
             out = torch.maximum(out, self.norm(q))
         return out
 
+    def Not(self, S: Tensor) -> Tensor:
+        """否定:1 − μ,在归一后的隶属度上取补。
+
+        注意 calibrate="none" 时是字面的 1−S(原始分数):正项路径的分数
+        尺度(~[0,12])远大于补集(~[−11,1]),And(P, Not(N)) 会被否定项
+        数值主导 —— 这是计划里"字面基线"语义的一部分,否定组正是创新点
+        (可学习否定强度)要替换的位置。用 calibrate="rank" 时 Not 是
+        反向秩,退化消失。
+        """
+        return 1.0 - self.norm(S)
+
     # ---------- 时间算子(闭式) ----------
 
     @staticmethod
@@ -191,5 +202,48 @@ class NaiveOperators:
         flat_t = tau_ids.repeat_interleave(k)
         P = self.Pe(flat_e, flat_r, flat_t)            # [B*k, N],原始分数
         P = self.norm(P).view(B, k, N)                 # 与 v 同一尺度
+
+        return torch.minimum(v.unsqueeze(-1), P).max(dim=1).values
+
+    def project_time(self, S: Tensor, r_ids: Tensor, e_ids: Tensor,
+                     side: str = "h") -> Tensor:
+        """把实体隶属度沿一条边投影到时间轴:[B, N_time]。
+
+        side="h": 中间实体 x 作头,Pt(x, r, e) —— Pt_sPe/Pt_se2i/Pt_sPe_Pt
+        side="o": 中间实体 x 作尾,Pt(e, r, x) —— Pt_oPe/Pt_oe2i/Pt_oPe_Pt
+
+        与 project 相同的 max-min 合成,只是第二步打分落在时间域。
+        """
+        assert side in ("h", "o")
+        B, N = S.shape
+        k = min(self.topk, N)
+        v, idx = self.norm(S).topk(k, dim=1)           # [B, k]
+
+        flat_r = r_ids.repeat_interleave(k)
+        flat_e = e_ids.repeat_interleave(k)
+        flat_x = idx.reshape(-1)
+        h = flat_x if side == "h" else flat_e
+        o = flat_e if side == "h" else flat_x
+        P = self.Pt(h, flat_r, o)                      # [B*k, N_time]
+        P = self.norm(P).view(B, k, -1)
+
+        return torch.minimum(v.unsqueeze(-1), P).max(dim=1).values
+
+    def project_via_time(self, S: Tensor, e_ids: Tensor, r_ids: Tensor) -> Tensor:
+        """把时间隶属度沿一条边投影到实体域:[B, N_entity]。
+
+        用于 Pe(e, r, 中间时间集):top-k 时刻 τ,对每 τ 打 Pe(e, r, τ),
+        max_τ min(v_τ, P_τ)。中间时间集可以是 Pt / after(Pt) / before(Pt)
+        / t2i / TimeOr 的结果。
+        """
+        B, N = S.shape
+        k = min(self.topk, N)
+        v, idx = self.norm(S).topk(k, dim=1)           # [B, k]
+
+        flat_e = e_ids.repeat_interleave(k)
+        flat_r = r_ids.repeat_interleave(k)
+        flat_t = idx.reshape(-1)
+        P = self.Pe(flat_e, flat_r, flat_t)            # [B*k, N_entity]
+        P = self.norm(P).view(B, k, -1)
 
         return torch.minimum(v.unsqueeze(-1), P).max(dim=1).values
